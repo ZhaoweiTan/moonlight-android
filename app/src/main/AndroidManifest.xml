@@ -121,6 +121,19 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.limelight.PcView" />
         </activity>
+
+        <receiver
+            android:name=".LteUplinkLatencyReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="MobileInsight.RrcSrAnalyzer.RRC_SR" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
