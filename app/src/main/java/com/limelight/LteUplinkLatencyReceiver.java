@@ -18,12 +18,12 @@ public class LteUplinkLatencyReceiver extends BroadcastReceiver{
         }
         else if(intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")){
 
-            Log.i("Yuanjie","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
+//            Log.i("Yuanjie","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
 
         }
         else if(intent.getAction().equals("MobileInsight.RrcSrAnalyzer.RRC_SR")){
 
-            Log.i("Yuanjie","MobileInsight.RrcSrAnalyzer.RRC_SR");
+//            Log.i("Yuanjie","MobileInsight.RrcSrAnalyzer.RRC_SR");
 
         }
     }

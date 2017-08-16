@@ -30,9 +30,11 @@ import com.limelight.utils.UiHelper;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Point;
 import android.hardware.input.InputManager;
@@ -44,6 +46,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -123,9 +126,36 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_PC_UUID = "UUID";
     public static final String EXTRA_PC_NAME = "PcName";
 
+    private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            if(intent.getAction().equals("android.appwidget.action.APPWIDGET_ENABLED")) {
+                //TODO: ???
+            }
+            else if(intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")){
+
+                Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
+
+            }
+            else if(intent.getAction().equals("MobileInsight.RrcSrAnalyzer.RRC_SR")){
+
+                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
+
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // MobileInsight: Register broadcast receiver
+        IntentFilter ul_latency_filter = new IntentFilter("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
+        IntentFilter rrc_sr_filter = new IntentFilter("MobileInsight.RrcSrAnalyzer.RRC_SR");
+        registerReceiver(MobileInsight_Receiver, ul_latency_filter);
+        registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
+
 
         shortcutHelper = new ShortcutHelper(this);
 
@@ -433,6 +463,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        unregisterReceiver(MobileInsight_Receiver);
 
         if (controllerHandler != null) {
             InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);

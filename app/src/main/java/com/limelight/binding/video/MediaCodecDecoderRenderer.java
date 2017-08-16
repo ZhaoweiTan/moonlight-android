@@ -75,6 +75,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
             decoder = MediaCodecHelper.findFirstDecoder("video/avc");
         }
         return decoder;
+
     }
 
     private MediaCodecInfo findHevcDecoder(int videoFormat) {
