@@ -71,7 +71,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     private int numPpsIn;
     private int numVpsIn;
 
-    private TextView statsView;
+    // private TextView statsView;
 
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
@@ -114,12 +114,12 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         this.renderTarget = renderTarget;
     }
 
-    public MediaCodecDecoderRenderer(int videoFormat, int bitrate, boolean batterySaver, TextView t) {
+    public MediaCodecDecoderRenderer(int videoFormat, int bitrate, boolean batterySaver) {
         //dumpDecoders();
 
         this.bitrate = bitrate;
 
-        this.statsView = t;
+        // this.statsView = t;
 
         // Disable spinner threads in battery saver mode
         if (batterySaver) {
@@ -561,7 +561,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     public int submitDecodeUnit(byte[] frameData, int frameLength, int frameNumber, long receiveTimeMs) {
         totalFrames++;
 
-        statsView.setText(String.valueOf(totalFrames));
+        // statsView.setText(String.valueOf(totalFrames));
 
 
         // We can receive the same "frame" multiple times if it's an IDR frame.
@@ -893,6 +893,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
             return 0;
         }
         return (int)(decoderTimeMs / totalFrames);
+    }
+
+    public int getTotalFrames() {
+        return totalFrames;
     }
 
     public class RendererException extends RuntimeException {

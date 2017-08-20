@@ -245,10 +245,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Initialize the MediaCodec helper before creating the decoder
         MediaCodecHelper.initializeWithContext(this);
 
-        final TextView statsTextView = (TextView) findViewById(R.id.textViewStat);
 
-
-        decoderRenderer = new MediaCodecDecoderRenderer(prefConfig.videoFormat, prefConfig.bitrate, prefConfig.batterySaver, statsTextView);
+        decoderRenderer = new MediaCodecDecoderRenderer(prefConfig.videoFormat, prefConfig.bitrate, prefConfig.batterySaver);
 
         // Display a message to the user if H.265 was forced on but we still didn't find a decoder
         if (prefConfig.videoFormat == PreferenceConfiguration.FORCE_H265_ON && !decoderRenderer.isHevcSupported()) {
@@ -321,7 +319,45 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // The connection will be started when the surface gets created
         streamView.getHolder().addCallback(this);
+
+
+        final TextView statsTextView = (TextView) findViewById(R.id.textViewStat);
+
+        // Create UI change thread
+        Runnable printStats = new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    try {
+                        Thread.sleep(5000);
+                        int totalFrames = decoderRenderer.getTotalFrames();
+                        int avgLatency = decoderRenderer.getAverageDecoderLatency();
+                        // int f_interval = decoderRenderer.getAverageEndToEndLatency();
+                        String stats = "Total frames: " + String.valueOf(totalFrames) + "\n";
+                        stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
+                        // stats += "FPS: " + String.valueOf(((float) 1000) / f_interval ) + "\n";
+                        setStatsText(statsTextView, stats);
+                        Log.i("game","Zhaowei: UI thread running");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+
+        Thread statsThread = new Thread(printStats);
+        statsThread.start();
     }
+
+    private void setStatsText(final TextView text,final String value){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                text.setText(value);
+            }
+        });
+    }
+
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
