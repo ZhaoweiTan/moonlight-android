@@ -60,6 +60,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -244,7 +245,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Initialize the MediaCodec helper before creating the decoder
         MediaCodecHelper.initializeWithContext(this);
 
-        decoderRenderer = new MediaCodecDecoderRenderer(prefConfig.videoFormat, prefConfig.bitrate, prefConfig.batterySaver);
+        final TextView statsTextView = (TextView) findViewById(R.id.textViewStat);
+
+
+        decoderRenderer = new MediaCodecDecoderRenderer(prefConfig.videoFormat, prefConfig.bitrate, prefConfig.batterySaver, statsTextView);
 
         // Display a message to the user if H.265 was forced on but we still didn't find a decoder
         if (prefConfig.videoFormat == PreferenceConfiguration.FORCE_H265_ON && !decoderRenderer.isHevcSupported()) {

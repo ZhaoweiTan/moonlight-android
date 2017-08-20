@@ -8,6 +8,7 @@ import org.jcodec.codecs.h264.io.model.SeqParameterSet;
 import org.jcodec.codecs.h264.io.model.VUIParameters;
 
 import com.limelight.LimeLog;
+import com.limelight.R;
 import com.limelight.nvstream.av.video.VideoDecoderRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.PreferenceConfiguration;
@@ -19,6 +20,7 @@ import android.media.MediaCodec.BufferInfo;
 import android.media.MediaCodec.CodecException;
 import android.os.Build;
 import android.view.SurfaceHolder;
+import android.widget.TextView;
 
 public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
 
@@ -69,6 +71,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     private int numPpsIn;
     private int numVpsIn;
 
+    private TextView statsView;
+
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
         if (decoder == null) {
@@ -110,10 +114,12 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         this.renderTarget = renderTarget;
     }
 
-    public MediaCodecDecoderRenderer(int videoFormat, int bitrate, boolean batterySaver) {
+    public MediaCodecDecoderRenderer(int videoFormat, int bitrate, boolean batterySaver, TextView t) {
         //dumpDecoders();
 
         this.bitrate = bitrate;
+
+        this.statsView = t;
 
         // Disable spinner threads in battery saver mode
         if (batterySaver) {
@@ -554,6 +560,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     @Override
     public int submitDecodeUnit(byte[] frameData, int frameLength, int frameNumber, long receiveTimeMs) {
         totalFrames++;
+
+        statsView.setText(String.valueOf(totalFrames));
+
 
         // We can receive the same "frame" multiple times if it's an IDR frame.
         // In that case, each frame start NALU is submitted independently.

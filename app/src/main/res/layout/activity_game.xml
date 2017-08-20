@@ -10,4 +10,10 @@
         android:layout_height="match_parent"
         android:layout_gravity="center" />
 
+    <TextView
+        android:text="100"
+        android:layout_width="93dp"
+        android:layout_height="54dp"
+        android:id="@+id/textViewStat" />
+
 </merge>
