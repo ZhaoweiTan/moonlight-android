@@ -4,7 +4,7 @@ Version | Time | Author | Summary
 --- | --- | --- | ---
 0.1 | Aug. 11 | Zhaowei | Initial draft
 0.2 | Aug. 13 | Zhaowei | Add compilation and overlay plan
-0.3 | Aug. 19 | Zhaowei | Overlay introduction
+0.3 | Aug. 20 | Zhaowei | Overlay, MI integration
 
 ## Goal:
 Implement a VR demo application, where the real time statistics and MobileInsight KPI/KEIs are displayed in the front end. Strong correlation should be observed among the three.
@@ -61,13 +61,7 @@ Note that this event handler calls several Nvidia native functions to use the so
 
 
 
-### Integration with MobileInsight
-TBD
-
-
 ## Implementation Details: Stage Two
-
-TBD. Finish by the end of August.
 
 ### Overlay Implementation Plan
 In the decoder file, we have aan object `MediaCodec videoDecoder`. Video Decoder will read from buffer in `startRendererThread`; it uses `releaseOutputBuffer()` to render and output the frame out of the buffer.
@@ -76,8 +70,31 @@ The output frame is written in a surface. This surface (`SurfaceHolder renderTar
 
 Thinking of manupulating the renderTarget using [OpenGL ES](https://developer.android.com/guide/topics/graphics/opengl.html).
 
-IP address: 131.179.80.180
+Server IP address: 131.179.80.180
 
 
-### Integration with StreamTheater
-For compilation StreamTheater, I will consult Zhehan and figure things out.
+### Integration with MobileInsight
+The Broadcast receiver is written in `Game.java`. In this receiver, the received parameters are stored as private variables in the class.
+
+Currently the parameters being tracked are:
+```
+UL_LAT_BREAKDOWN:{
+'pkt_size': string, 'wait_delay': string, 'proc_delay': string, 'trans_delay': string
+}
+```
+
+To support new intent or new parameters, create new local variable in the class (like in line 131), and modify the b-receiver (like in line 140-151).
+
+
+
+### Overlay Implementation
+Now we add the overlay got from both in-app and from MobileInsight. A background thread, `statsThread`, is created when the you load the game activity. In this thread, currently, it detects whether there's new info got from MI. If so, it updates the overlay text value. If you intend to change the content of the overlay (e.g. add a new local variable in the overlay), simply modify the value of `String stats`.
+
+If you want to change the logic, or display some extra in-app stats, please contact me.
+
+
+
+
+
+### Compiling StreamTheater
+For compilation StreamTheater, I will consult Zhehan and figure things out this week.

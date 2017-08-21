@@ -348,6 +348,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         stats += "Waiting delay is: " + wait_delay + "\n";
                         setStatsText(statsTextView, stats);
                         Log.i("game","Zhaowei: UI thread running");
+                        new_packet = false;
                     }
                 }
             }
