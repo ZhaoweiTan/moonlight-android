@@ -127,6 +127,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_PC_UUID = "UUID";
     public static final String EXTRA_PC_NAME = "PcName";
 
+    private boolean new_packet = false;
+    private String pkt_size, wait_delay, proc_delay, trans_delay;
+
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -137,7 +140,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             else if(intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")){
 
                 Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
-
+                if (intent.getStringExtra("pkt_size")!=null && intent.getStringExtra("wait_delay")!=null
+                        && intent.getStringExtra("proc_delay")!=null && intent.getStringExtra("trans_delay") != null) {
+                    pkt_size = intent.getStringExtra("pkt_size");
+                    wait_delay = intent.getStringExtra("wait_delay");
+                    proc_delay = intent.getStringExtra("proc_delay");
+                    trans_delay = intent.getStringExtra("trans_delay");
+                    new_packet = true;
+                }
             }
             else if(intent.getAction().equals("MobileInsight.RrcSrAnalyzer.RRC_SR")){
 
@@ -328,18 +338,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             @Override
             public void run() {
                 while(true){
-                    try {
-                        Thread.sleep(5000);
+                    if (new_packet) {
                         int totalFrames = decoderRenderer.getTotalFrames();
                         int avgLatency = decoderRenderer.getAverageDecoderLatency();
                         // int f_interval = decoderRenderer.getAverageEndToEndLatency();
                         String stats = "Total frames: " + String.valueOf(totalFrames) + "\n";
                         stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
                         // stats += "FPS: " + String.valueOf(((float) 1000) / f_interval ) + "\n";
+                        stats += "Waiting delay is: " + wait_delay + "\n";
                         setStatsText(statsTextView, stats);
                         Log.i("game","Zhaowei: UI thread running");
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
                     }
                 }
             }
