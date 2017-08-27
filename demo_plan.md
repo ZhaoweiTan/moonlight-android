@@ -5,6 +5,7 @@ Version | Time | Author | Summary
 0.1 | Aug. 11 | Zhaowei | Initial draft
 0.2 | Aug. 13 | Zhaowei | Add compilation and overlay plan
 0.3 | Aug. 20 | Zhaowei | Overlay, MI integration
+0.4 | Aug. 26 | Zhaowei | Demo plan -- How to prove usefulness
 
 ## Goal:
 Implement a VR demo application, where the real time statistics and MobileInsight KPI/KEIs are displayed in the front end. Strong correlation should be observed among the three.
@@ -94,7 +95,31 @@ If you want to change the logic, or display some extra in-app stats, please cont
 
 
 
-
-
 ### Compiling StreamTheater
 For compilation StreamTheater, I will consult Zhehan and figure things out this week.
+
+
+
+## Demo
+
+### Frequency band
+Using MobileInsight we learn the best frequency band we could switch to, and get a best throughput.
+
+We currently need to investigate how to
+  * Get the frequency band info from MobileInsight/KPI map
+  * Switch the frequency band within the app
+
+
+### HO prediction
+KEI introduced is able to predict the HO before it happens. By this info, we could demonstrate that combining KPI and pre-rendering.
+
+* It is problematic that we could not really do the pre-rendering; however, we are able to demonstrate how many frames we could squeeze in.
+
+
+### DL bitrate adaption
+Like our Mobicom Demo, we could dynamically adjust the bitrate of the VR video as well. Gathering information from low level we are able to change the bitrate as the best of the current cellular network.
+
+* Need to make sure that this is duable. Currently this setting never changes.
+
+### UL SR config index
+

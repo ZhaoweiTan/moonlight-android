@@ -127,7 +127,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_PC_UUID = "UUID";
     public static final String EXTRA_PC_NAME = "PcName";
 
-    private boolean new_packet = false;
+    // private boolean new_packet = false;
+    private boolean new_packet = true;
+
     private String pkt_size, wait_delay, proc_delay, trans_delay;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
@@ -339,16 +341,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             public void run() {
                 while(true){
                     if (new_packet) {
+                        SystemClock.sleep(2000);
+                        decoderRenderer.setFPS(30);
                         int totalFrames = decoderRenderer.getTotalFrames();
                         int avgLatency = decoderRenderer.getAverageDecoderLatency();
-                        // int f_interval = decoderRenderer.getAverageEndToEndLatency();
+                        int currentFps = decoderRenderer.getFPS();
                         String stats = "Total frames: " + String.valueOf(totalFrames) + "\n";
                         stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
-                        // stats += "FPS: " + String.valueOf(((float) 1000) / f_interval ) + "\n";
+                        stats += "FPS: " + String.valueOf(currentFps) + "\n";
                         stats += "Waiting delay is: " + wait_delay + "\n";
                         setStatsText(statsTextView, stats);
-                        Log.i("game","Zhaowei: UI thread running");
-                        new_packet = false;
+                        // Log.i("game","Zhaowei: UI thread running");
+                        // new_packet = false;
+                        new_packet = true;
                     }
                 }
             }
@@ -1110,6 +1115,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             connecting = true;
 
             decoderRenderer.setRenderTarget(holder);
+
             conn.start(PlatformBinding.getAudioRenderer(), decoderRenderer, Game.this);
         }
     }
@@ -1201,4 +1207,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             hideSystemUi(2000);
         }
     }
+
+    
 }

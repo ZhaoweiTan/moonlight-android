@@ -1,6 +1,7 @@
 package com.limelight.binding.video;
 
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.Locale;
 
 import org.jcodec.codecs.h264.H264Utils;
@@ -19,6 +20,7 @@ import android.media.MediaFormat;
 import android.media.MediaCodec.BufferInfo;
 import android.media.MediaCodec.CodecException;
 import android.os.Build;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.widget.TextView;
 
@@ -71,6 +73,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     private int numPpsIn;
     private int numVpsIn;
 
+    Date startTime;
+
+
     // private TextView statsView;
 
     private MediaCodecInfo findAvcDecoder() {
@@ -118,6 +123,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         //dumpDecoders();
 
         this.bitrate = bitrate;
+
+        Log.i("decoder","Zhaowei: The bit rate target is " + String.valueOf(bitrate));
+
+        startTime = new Date();
 
         // this.statsView = t;
 
@@ -186,6 +195,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         this.initialHeight = height;
         this.videoFormat = format;
         this.refreshRate = redrawRate;
+
+        Log.i("decoder","Zhaowei: The FPS target is " + String.valueOf(redrawRate));
 
         String mimeType;
         String selectedDecoderName;
@@ -362,7 +373,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
                                 presentationTimeUs = info.presentationTimeUs;
                             }
 
-                            // Render the last buffer
+                            // Render the last buffer (Zhaowei: write to the surface as it registered before)
                             videoDecoder.releaseOutputBuffer(lastIndex, true);
 
                             // Add delta time to the totals (excluding probable outliers)
@@ -893,6 +904,19 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
             return 0;
         }
         return (int)(decoderTimeMs / totalFrames);
+    }
+
+    public int getFPS() {
+        float timeDif = (new Date()).getTime() - startTime.getTime();
+        return (int)(this.getTotalFrames() / (timeDif / 1000));
+    }
+
+    public void setFPS(int target) {
+        this.refreshRate = target;
+    }
+
+    public void setbitrate(int target) {
+        this.bitrate = target;
     }
 
     public int getTotalFrames() {
