@@ -1,7 +1,12 @@
 package com.limelight;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Locale;
@@ -164,7 +169,96 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 PreferenceConfiguration.readPreferences(this).listMode,
                 PreferenceConfiguration.readPreferences(this).smallIconMode);
 
+        adaptFreqBand();
+
         initializeViews();
+    }
+
+    private void adaptFreqBand() {
+        int service_code = get_service_code("com.android.internal.telephony.ITelephony",
+                        "getPreferredNetworkType");
+
+        // use secret code to change the frequency band
+        // TODO: integrate with MI info
+        RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
+    }
+
+
+    public static int get_service_code(String str, String str2) {
+        int i = -1;
+        try {
+            loop0:
+            for (Class declaredFields : Class.forName(str).getDeclaredClasses()) {
+                Field[] declaredFields2 = declaredFields.getDeclaredFields();
+                int length = declaredFields2.length;
+                int i2 = 0;
+                while (i2 < length) {
+                    Field field = declaredFields2[i2];
+                    String name = field.getName();
+                    if (name == null || !name.equals("TRANSACTION_" + str2)) {
+                        i2++;
+                    } else {
+                        try {
+                            field.setAccessible(true);
+                            i = field.getInt(field);
+                            break loop0;
+                        } catch (IllegalAccessException e) {
+                        } catch (IllegalArgumentException e2) {
+                        }
+                    }
+                }
+            }
+        } catch (ClassNotFoundException e3) {
+        }
+        return i;
+    }
+
+
+    private String RootCommand(String command, boolean need_res){
+
+        Process process = null;
+        DataOutputStream os = null;
+        DataInputStream is = null;
+        String res = "";
+        BufferedReader bf = null;
+
+        try
+        {
+            process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+            bf = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            os.writeBytes(command + "\n");
+            os.writeBytes("exit\n");
+
+            String tmp;
+
+            if(need_res){
+                while((tmp=bf.readLine())!=null) {
+                    res = res + "\n" + tmp;
+                }
+            }
+
+            os.flush();
+            process.waitFor();
+
+        } catch (Exception e)
+        {
+            return res;
+        } finally
+        {
+            try
+            {
+                if (os != null)
+                {
+                    os.close();
+                }
+                process.destroy();
+            } catch (Exception e)
+            {
+            }
+        }
+        return res;
+
     }
 
     private void startComputerUpdates() {

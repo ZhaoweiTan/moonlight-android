@@ -263,10 +263,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Initialize the MediaCodec helper before creating the decoder
         MediaCodecHelper.initializeWithContext(this);
 
-        int service_code = get_service_code("com.android.internal.telephony.ITelephony",
-                        "getPreferredNetworkType");
+//        int service_code = get_service_code("com.android.internal.telephony.ITelephony",
+//                        "getPreferredNetworkType");
 
-        RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
+//        RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
 
         decoderRenderer = new MediaCodecDecoderRenderer(prefConfig.videoFormat, prefConfig.bitrate, prefConfig.batterySaver);
 
