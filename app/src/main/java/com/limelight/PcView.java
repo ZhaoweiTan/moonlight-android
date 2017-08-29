@@ -13,6 +13,10 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.crypto.AndroidCryptoProvider;
@@ -60,6 +64,10 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class PcView extends Activity implements AdapterFragmentCallbacks {
     private RelativeLayout noPcFoundLayout;
@@ -178,102 +186,6 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         initializeViews();
     }
 
-    private void adaptFreqBand() {
-        // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
-
-
-        getBandFromKPIMap();
-
-
-        // (deprecated) use secret code to change the frequency band
-        // RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
-
-        // TODO: integrate with MI info and AT command
-
-
-    }
-
-
-    public static int get_service_code(String str, String str2) {
-        int i = -1;
-        try {
-            loop0:
-            for (Class declaredFields : Class.forName(str).getDeclaredClasses()) {
-                Field[] declaredFields2 = declaredFields.getDeclaredFields();
-                int length = declaredFields2.length;
-                int i2 = 0;
-                while (i2 < length) {
-                    Field field = declaredFields2[i2];
-                    String name = field.getName();
-                    if (name == null || !name.equals("TRANSACTION_" + str2)) {
-                        i2++;
-                    } else {
-                        try {
-                            field.setAccessible(true);
-                            i = field.getInt(field);
-                            break loop0;
-                        } catch (IllegalAccessException e) {
-                        } catch (IllegalArgumentException e2) {
-                        }
-                    }
-                }
-            }
-        } catch (ClassNotFoundException e3) {
-        }
-        return i;
-    }
-
-
-    private String RootCommand(String command, boolean need_res) {
-
-        Process process = null;
-        DataOutputStream os = null;
-        DataInputStream is = null;
-        String res = "";
-        BufferedReader bf = null;
-
-        try {
-            process = Runtime.getRuntime().exec("su");
-            os = new DataOutputStream(process.getOutputStream());
-            bf = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            os.writeBytes(command + "\n");
-            os.writeBytes("exit\n");
-
-            String tmp;
-
-            if (need_res) {
-                while ((tmp = bf.readLine()) != null) {
-                    res = res + "\n" + tmp;
-                }
-            }
-
-            os.flush();
-            process.waitFor();
-
-        } catch (Exception e) {
-            return res;
-        } finally {
-            try {
-                if (os != null) {
-                    os.close();
-                }
-                process.destroy();
-            } catch (Exception e) {
-            }
-        }
-        return res;
-    }
-
-    private int getBandFromKPIMap() {
-
-        // Substitute the default with the one using our own GPS later
-
-        String[] urls = new String[1];
-        urls[0] = "http://34.213.149.155/kpi_log/getLog/all/all/VR/?Lat=34.06979594&Lng=-118.44237744";
-        new GetKPITask().execute(urls);
-
-        return 0;
-    }
 
 
     private void startComputerUpdates() {
@@ -763,11 +675,132 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
     }
 
-    class GetKPITask extends AsyncTask<String, Object, Void> {
+
+
+    private void adaptFreqBand() {
+        // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
+
+
+        int max_freq = getBandFromKPIMap();
+
+        Log.i("PC", "max available dl freq is: " + String.valueOf(max_freq));
+
+        // (deprecated) use secret code to change the frequency band
+        // RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
+
+        // TODO: do sth with max_freq -- integrate with MI info and AT command
+
+
+    }
+
+
+    public static int get_service_code(String str, String str2) {
+        int i = -1;
+        try {
+            loop0:
+            for (Class declaredFields : Class.forName(str).getDeclaredClasses()) {
+                Field[] declaredFields2 = declaredFields.getDeclaredFields();
+                int length = declaredFields2.length;
+                int i2 = 0;
+                while (i2 < length) {
+                    Field field = declaredFields2[i2];
+                    String name = field.getName();
+                    if (name == null || !name.equals("TRANSACTION_" + str2)) {
+                        i2++;
+                    } else {
+                        try {
+                            field.setAccessible(true);
+                            i = field.getInt(field);
+                            break loop0;
+                        } catch (IllegalAccessException e) {
+                        } catch (IllegalArgumentException e2) {
+                        }
+                    }
+                }
+            }
+        } catch (ClassNotFoundException e3) {
+        }
+        return i;
+    }
+
+
+    private String RootCommand(String command, boolean need_res) {
+
+        Process process = null;
+        DataOutputStream os = null;
+        DataInputStream is = null;
+        String res = "";
+        BufferedReader bf = null;
+
+        try {
+            process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+            bf = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            os.writeBytes(command + "\n");
+            os.writeBytes("exit\n");
+
+            String tmp;
+
+            if (need_res) {
+                while ((tmp = bf.readLine()) != null) {
+                    res = res + "\n" + tmp;
+                }
+            }
+
+            os.flush();
+            process.waitFor();
+
+        } catch (Exception e) {
+            return res;
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+                process.destroy();
+            } catch (Exception e) {
+            }
+        }
+        return res;
+    }
+
+    private int getBandFromKPIMap() {
+
+        currentPosition();
+
+        // Substitute the default with the one using our own GPS later
+        String[] urls = new String[3];
+        urls[0] = "http://34.213.149.155/kpi_log/getLog/all/all/VR/?Lat=34.06979594&Lng=-118.44237744";
+        urls[1] = "Verizon Wireless-311480";
+        urls[2] = "DL_Freq";
+
+        List<Integer> fband_list = null;
+        try {
+            fband_list = new GetKPITask().execute(urls).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        if (fband_list != null) {
+            Collections.sort(fband_list, Collections.reverseOrder());
+        }
+
+        return fband_list.get(0);
+    }
+
+    private void currentPosition() {
+
+    }
+
+
+    class GetKPITask extends AsyncTask<String, Void, List<Integer>> {
 
 
         @Override
-        protected Void doInBackground(String... urls) {
+        protected List<Integer> doInBackground(String... urls) {
+
+            List<Integer> fband_avail = new ArrayList<Integer>();
 
             try {
                 URL KPIMap = new URL(urls[0]);
@@ -776,19 +809,34 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 int code = urlConnection.getResponseCode();
 
                 Log.i("PC", String.valueOf(code));
-//
-//            String inputLine;
-//
-//            while ((inputLine = in.readLine()) != null)
-//                System.out.println(inputLine);
-//
-//            in.close();
+
+                if (code == 200) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader((urlConnection.getInputStream())));
+                    String inputLine;
+                    String html = "";
+
+
+                    while ((inputLine = br.readLine()) != null)
+                        html = html + inputLine;
+                    Log.i("PC", html);
+                    JSONObject fband = new JSONObject(html);
+                    JSONArray fband_carrier = fband.getJSONArray(urls[1]);
+                    for (int i = 0; i < fband_carrier.length(); i++) {
+                        Log.i("PC", fband_carrier.getJSONObject(i).getString(urls[2]));
+                        fband_avail.add(Integer.parseInt(fband_carrier.getJSONObject(i).getString(urls[2])));
+                    }
+
+                }
+
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
-            return null;
+
+            return fband_avail;
         }
     }
 }
