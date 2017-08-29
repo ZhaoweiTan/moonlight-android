@@ -1247,7 +1247,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return i;
     }
 
-    private String RootCommand(String command, boolean need_res){
+    private String RootCommand(String command, boolean need_res) {
 
         Process process = null;
         DataOutputStream os = null;
@@ -1255,8 +1255,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         String res = "";
         BufferedReader bf = null;
 
-        try
-        {
+        try {
             process = Runtime.getRuntime().exec("su");
             os = new DataOutputStream(process.getOutputStream());
             bf = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -1265,8 +1264,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             String tmp;
 
-            if(need_res){
-                while((tmp=bf.readLine())!=null) {
+            if (need_res) {
+                while ((tmp = bf.readLine()) != null) {
                     res = res + "\n" + tmp;
                 }
             }
@@ -1274,23 +1273,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             os.flush();
             process.waitFor();
 
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             return res;
-        } finally
-        {
-            try
-            {
-                if (os != null)
-                {
+        } finally {
+            try {
+                if (os != null) {
                     os.close();
                 }
                 process.destroy();
-            } catch (Exception e)
-            {
+            } catch (Exception e) {
             }
         }
         return res;
-
     }
 }

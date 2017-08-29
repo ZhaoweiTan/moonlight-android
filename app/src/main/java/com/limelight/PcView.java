@@ -5,11 +5,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.Locale;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.crypto.AndroidCryptoProvider;
@@ -39,9 +42,11 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -65,7 +70,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
-                    ((ComputerManagerService.ComputerManagerBinder)binder);
+                    ((ComputerManagerService.ComputerManagerBinder) binder);
 
             // Wait in a separate thread to avoid stalling the UI
             new Thread() {
@@ -140,14 +145,13 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         });
 
         getFragmentManager().beginTransaction()
-            .replace(R.id.pcFragmentContainer, new AdapterFragment())
-            .commitAllowingStateLoss();
+                .replace(R.id.pcFragmentContainer, new AdapterFragment())
+                .commitAllowingStateLoss();
 
         noPcFoundLayout = (RelativeLayout) findViewById(R.id.no_pc_found_layout);
         if (pcGridAdapter.getCount() == 0) {
             noPcFoundLayout.setVisibility(View.VISIBLE);
-        }
-        else {
+        } else {
             noPcFoundLayout.setVisibility(View.INVISIBLE);
         }
         pcGridAdapter.notifyDataSetChanged();
@@ -175,12 +179,18 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     }
 
     private void adaptFreqBand() {
-        int service_code = get_service_code("com.android.internal.telephony.ITelephony",
-                        "getPreferredNetworkType");
+        // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
 
-        // use secret code to change the frequency band
-        // TODO: integrate with MI info
-        RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
+
+        getBandFromKPIMap();
+
+
+        // (deprecated) use secret code to change the frequency band
+        // RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
+
+        // TODO: integrate with MI info and AT command
+
+
     }
 
 
@@ -214,7 +224,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     }
 
 
-    private String RootCommand(String command, boolean need_res){
+    private String RootCommand(String command, boolean need_res) {
 
         Process process = null;
         DataOutputStream os = null;
@@ -222,8 +232,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         String res = "";
         BufferedReader bf = null;
 
-        try
-        {
+        try {
             process = Runtime.getRuntime().exec("su");
             os = new DataOutputStream(process.getOutputStream());
             bf = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -232,8 +241,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
             String tmp;
 
-            if(need_res){
-                while((tmp=bf.readLine())!=null) {
+            if (need_res) {
+                while ((tmp = bf.readLine()) != null) {
                     res = res + "\n" + tmp;
                 }
             }
@@ -241,25 +250,31 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             os.flush();
             process.waitFor();
 
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             return res;
-        } finally
-        {
-            try
-            {
-                if (os != null)
-                {
+        } finally {
+            try {
+                if (os != null) {
                     os.close();
                 }
                 process.destroy();
-            } catch (Exception e)
-            {
+            } catch (Exception e) {
             }
         }
         return res;
-
     }
+
+    private int getBandFromKPIMap() {
+
+        // Substitute the default with the one using our own GPS later
+
+        String[] urls = new String[1];
+        urls[0] = "http://34.213.149.155/kpi_log/getLog/all/all/VR/?Lat=34.06979594&Lng=-118.44237744";
+        new GetKPITask().execute(urls);
+
+        return 0;
+    }
+
 
     private void startComputerUpdates() {
         // Only allow polling to start if we're bound to CMS, polling is not already running,
@@ -339,21 +354,19 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         // Call superclass
         super.onCreateContextMenu(menu, v, menuInfo);
-                
+
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
         ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(info.position);
 
         // Inflate the context menu
         if (computer.details.reachability == ComputerDetails.Reachability.OFFLINE ||
-            computer.details.reachability == ComputerDetails.Reachability.UNKNOWN) {
+                computer.details.reachability == ComputerDetails.Reachability.UNKNOWN) {
             menu.add(Menu.NONE, WOL_ID, 1, getResources().getString(R.string.pcview_menu_send_wol));
             menu.add(Menu.NONE, DELETE_ID, 2, getResources().getString(R.string.pcview_menu_delete_pc));
-        }
-        else if (computer.details.pairState != PairState.PAIRED) {
+        } else if (computer.details.pairState != PairState.PAIRED) {
             menu.add(Menu.NONE, PAIR_ID, 1, getResources().getString(R.string.pcview_menu_pair_pc));
             menu.add(Menu.NONE, DELETE_ID, 2, getResources().getString(R.string.pcview_menu_delete_pc));
-        }
-        else {
+        } else {
             if (computer.details.runningGameId != 0) {
                 menu.add(Menu.NONE, RESUME_ID, 1, getResources().getString(R.string.applist_menu_resume));
                 menu.add(Menu.NONE, QUIT_ID, 2, getResources().getString(R.string.applist_menu_quit));
@@ -403,11 +416,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     InetAddress addr;
                     if (computer.reachability == ComputerDetails.Reachability.LOCAL) {
                         addr = computer.localIp;
-                    }
-                    else if (computer.reachability == ComputerDetails.Reachability.REMOTE) {
+                    } else if (computer.reachability == ComputerDetails.Reachability.REMOTE) {
                         addr = computer.remoteIp;
-                    }
-                    else {
+                    } else {
                         LimeLog.warning("Unknown reachability - using local IP");
                         addr = computer.localIp;
                     }
@@ -420,25 +431,21 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         // Don't display any toast, but open the app list
                         message = null;
                         success = true;
-                    }
-                    else {
+                    } else {
                         final String pinStr = PairingManager.generatePinString();
 
                         // Spin the dialog off in a thread because it blocks
                         Dialog.displayDialog(PcView.this, getResources().getString(R.string.pair_pairing_title),
-                                getResources().getString(R.string.pair_pairing_msg)+" "+pinStr, false);
+                                getResources().getString(R.string.pair_pairing_msg) + " " + pinStr, false);
 
                         PairingManager.PairState pairState = httpConn.pair(httpConn.getServerInfo(), pinStr);
                         if (pairState == PairingManager.PairState.PIN_WRONG) {
                             message = getResources().getString(R.string.pair_incorrect_pin);
-                        }
-                        else if (pairState == PairingManager.PairState.FAILED) {
+                        } else if (pairState == PairingManager.PairState.FAILED) {
                             message = getResources().getString(R.string.pair_fail);
-                        }
-                        else if (pairState == PairingManager.PairState.ALREADY_IN_PROGRESS) {
+                        } else if (pairState == PairingManager.PairState.ALREADY_IN_PROGRESS) {
                             message = getResources().getString(R.string.pair_already_in_progress);
-                        }
-                        else if (pairState == PairingManager.PairState.PAIRED) {
+                        } else if (pairState == PairingManager.PairState.PAIRED) {
                             // Just navigate to the app view without displaying a toast
                             message = null;
                             success = true;
@@ -446,8 +453,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                             // Invalidate reachability information after pairing to force
                             // a refresh before reading pair state again
                             managerBinder.invalidateStateForComputer(computer.uuid);
-                        }
-                        else {
+                        } else {
                             // Should be no other values
                             message = null;
                         }
@@ -475,8 +481,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         if (toastSuccess) {
                             // Open the app list after a successful pairing attempt
                             doAppList(computer);
-                        }
-                        else {
+                        } else {
                             // Start polling again if we're still in the foreground
                             startComputerUpdates();
                         }
@@ -540,11 +545,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     InetAddress addr;
                     if (computer.reachability == ComputerDetails.Reachability.LOCAL) {
                         addr = computer.localIp;
-                    }
-                    else if (computer.reachability == ComputerDetails.Reachability.REMOTE) {
+                    } else if (computer.reachability == ComputerDetails.Reachability.REMOTE) {
                         addr = computer.remoteIp;
-                    }
-                    else {
+                    } else {
                         LimeLog.warning("Unknown reachability - using local IP");
                         addr = computer.localIp;
                     }
@@ -557,12 +560,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         httpConn.unpair();
                         if (httpConn.getPairState() == PairingManager.PairState.NOT_PAIRED) {
                             message = getResources().getString(R.string.unpair_success);
-                        }
-                        else {
+                        } else {
                             message = getResources().getString(R.string.unpair_fail);
                         }
-                    }
-                    else {
+                    } else {
                         message = getResources().getString(R.string.unpair_error);
                     }
                 } catch (UnknownHostException e) {
@@ -660,7 +661,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 return super.onContextItemSelected(item);
         }
     }
-    
+
     private void removeComputer(ComputerDetails details) {
         for (int i = 0; i < pcGridAdapter.getCount(); i++) {
             ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(i);
@@ -682,7 +683,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
         }
     }
-    
+
     private void updateComputer(ComputerDetails details) {
         ComputerObject existingEntry = null;
 
@@ -704,8 +705,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         if (existingEntry != null) {
             // Replace the information in the existing entry
             existingEntry.details = details;
-        }
-        else {
+        } else {
             // Add a new entry
             pcGridAdapter.addComputer(new ComputerObject(details));
 
@@ -733,7 +733,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                                     long id) {
                 ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(pos);
                 if (computer.details.reachability == ComputerDetails.Reachability.UNKNOWN ||
-                    computer.details.reachability == ComputerDetails.Reachability.OFFLINE) {
+                        computer.details.reachability == ComputerDetails.Reachability.OFFLINE) {
                     // Open the context menu if a PC is offline or refreshing
                     openContextMenu(arg1);
                 } else if (computer.details.pairState != PairState.PAIRED) {
@@ -760,6 +760,35 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         @Override
         public String toString() {
             return details.name;
+        }
+    }
+
+    class GetKPITask extends AsyncTask<String, Object, Void> {
+
+
+        @Override
+        protected Void doInBackground(String... urls) {
+
+            try {
+                URL KPIMap = new URL(urls[0]);
+                HttpURLConnection urlConnection = (HttpURLConnection) KPIMap.openConnection();
+
+                int code = urlConnection.getResponseCode();
+
+                Log.i("PC", String.valueOf(code));
+//
+//            String inputLine;
+//
+//            while ((inputLine = in.readLine()) != null)
+//                System.out.println(inputLine);
+//
+//            in.close();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }
