@@ -40,13 +40,19 @@ import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.UiHelper;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -181,11 +187,13 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 PreferenceConfiguration.readPreferences(this).listMode,
                 PreferenceConfiguration.readPreferences(this).smallIconMode);
 
+
+
         adaptFreqBand();
 
         initializeViews();
-    }
 
+    }
 
 
     private void startComputerUpdates() {
@@ -676,7 +684,6 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     }
 
 
-
     private void adaptFreqBand() {
         // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
 
@@ -766,14 +773,24 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
     private int getBandFromKPIMap() {
 
-        currentPosition();
+        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+
+        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        double longitude = location.getLongitude();
+        double latitude = location.getLatitude();
+
+        Log.i("PC", "Logitude is " + String.valueOf(longitude) + "; latitude is " + String.valueOf(latitude));
+
+
 
         // Substitute the default with the one using our own GPS later
         String[] urls = new String[3];
-        urls[0] = "http://34.213.149.155/kpi_log/getLog/all/all/VR/?Lat=34.06979594&Lng=-118.44237744";
+        urls[0] = "http://34.213.149.155/kpi_log/getLog/all/all/VR/?Lat=" + String.valueOf(latitude) + "&Lng=" + String.valueOf(longitude);
         urls[1] = "Verizon Wireless-311480";
         urls[2] = "DL_Freq";
 
+        // Note that if there're no records near the location, could return empty list
         List<Integer> fband_list = null;
         try {
             fband_list = new GetKPITask().execute(urls).get();
@@ -789,9 +806,6 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         return fband_list.get(0);
     }
 
-    private void currentPosition() {
-
-    }
 
 
     class GetKPITask extends AsyncTask<String, Void, List<Integer>> {
