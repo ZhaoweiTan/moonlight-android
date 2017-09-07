@@ -136,7 +136,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // private boolean new_packet = false;
     private boolean new_packet = true;
 
-    private String pkt_size, wait_delay, proc_delay, trans_delay;
+    private int pkt_size, wait_delay, proc_delay, trans_delay, ul_total_delay;
+    private float dl_bandwidth;
+    private float handover_disruption;
+    private int sr_period, sr_config_index;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
@@ -147,21 +150,38 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             }
             else if(intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")){
 
-                Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
+//                Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
                 if (intent.getStringExtra("pkt_size")!=null && intent.getStringExtra("wait_delay")!=null
                         && intent.getStringExtra("proc_delay")!=null && intent.getStringExtra("trans_delay") != null) {
-                    pkt_size = intent.getStringExtra("pkt_size");
-                    wait_delay = intent.getStringExtra("wait_delay");
-                    proc_delay = intent.getStringExtra("proc_delay");
-                    trans_delay = intent.getStringExtra("trans_delay");
+                    pkt_size = Integer.parseInt(intent.getStringExtra("pkt_size"));
+                    wait_delay = Integer.parseInt(intent.getStringExtra("wait_delay"));
+                    proc_delay = Integer.parseInt(intent.getStringExtra("proc_delay"));
+                    trans_delay = Integer.parseInt(intent.getStringExtra("trans_delay"));
+                    ul_total_delay =  wait_delay+proc_delay+trans_delay;
                     new_packet = true;
                 }
             }
-            else if(intent.getAction().equals("MobileInsight.RrcSrAnalyzer.RRC_SR")){
+            else if(intent.getAction().equals("MobileInsight.LtePhyAnalyzer.LTE_DL_BW")){
 
-                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
+//                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
+                dl_bandwidth = Float.parseFloat(intent.getStringExtra("Predicted Bandwidth (Mbps)"));
 
             }
+            else if(intent.getAction().equals("MobileInsight.LteHandoverDisruptionAnalyzer.HANDOVER_LATENCY")){
+
+//                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
+                handover_disruption = Float.parseFloat(intent.getStringExtra("uplink_disruption"));
+
+            }
+            else if(intent.getAction().equals("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX")){
+
+//                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
+                sr_period = Integer.parseInt(intent.getStringExtra("period"));
+                sr_config_index = Integer.parseInt(intent.getStringExtra("config idx"));
+
+
+            }
+
         }
     };
 
@@ -172,8 +192,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // MobileInsight: Register broadcast receiver
         IntentFilter ul_latency_filter = new IntentFilter("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
         IntentFilter rrc_sr_filter = new IntentFilter("MobileInsight.RrcSrAnalyzer.RRC_SR");
+        IntentFilter phy_filter = new IntentFilter("MobileInsight.LtePhyAnalyzer.LTE_DL_BW");
+        IntentFilter handover_disruption_filter = new IntentFilter("MobileInsight.LteHandoverDisruptionAnalyzer.HANDOVER_LATENCY");
+        IntentFilter sr_config_filter = new IntentFilter("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX");
         registerReceiver(MobileInsight_Receiver, ul_latency_filter);
         registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
+        registerReceiver(MobileInsight_Receiver, phy_filter);
+        registerReceiver(MobileInsight_Receiver, handover_disruption_filter);
+        registerReceiver(MobileInsight_Receiver, sr_config_filter);
 
 
         shortcutHelper = new ShortcutHelper(this);
@@ -356,10 +382,23 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         int totalFrames = decoderRenderer.getTotalFrames();
                         int avgLatency = decoderRenderer.getAverageDecoderLatency();
                         int currentFps = decoderRenderer.getFPS();
+                        int targetFps = decoderRenderer.getTargetFPS();
+                        int avg_e2e_delay = decoderRenderer.getAverageEndToEndLatency();
+                        int framesLost = decoderRenderer.getFramesLost();
+                        int bitrate = decoderRenderer.getBitrate();
                         String stats = "Total frames: " + String.valueOf(totalFrames) + "\n";
+                        stats += "Frame loss: " + String.valueOf(framesLost) + "\n";
+                        stats += "FPS: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
+                        stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
+                        stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
+                        stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
                         stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
-                        stats += "FPS: " + String.valueOf(currentFps) + "\n";
-                        stats += "Waiting delay is: " + wait_delay + "\n";
+                        stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
+                        stats += "    (wait: " + String.valueOf(wait_delay)
+                                + " proc: " + String.valueOf(proc_delay)
+                                + " trans: " + String.valueOf(trans_delay) + ")\n";
+                        stats += "SrConfig Period: " + String.valueOf(sr_period) +"ms\n";
+                        stats += "handover disruption: " + String.valueOf(handover_disruption)+"ms\n";
                         setStatsText(statsTextView, stats);
                         // Log.i("game","Zhaowei: UI thread running");
                         // new_packet = false;

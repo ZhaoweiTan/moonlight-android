@@ -16,6 +16,14 @@ android {
     }
 
     productFlavors {
+
+        nonRoot {
+            applicationId "com.limelight"
+            ndk {
+                abiFilters "armeabi-v7a", "x86", "mips"
+            }
+        }
+
         root {
             // Android O has native mouse capture, so don't show the rooted
             // version to devices running O on the Play Store.
@@ -24,13 +32,6 @@ android {
             applicationId "com.limelight.root"
             ndk {
                 abiFilters "armeabi-v7a",  "x86",  "mips"
-            }
-        }
-
-        nonRoot {
-            applicationId "com.limelight"
-            ndk {
-                abiFilters "armeabi-v7a", "x86", "mips"
             }
         }
     }

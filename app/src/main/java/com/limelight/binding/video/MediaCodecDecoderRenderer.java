@@ -408,7 +408,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     }
 
     private void startSpinnerThreads() {
-        LimeLog.info("Using "+spinnerThreads.length+" spinner threads");
+        LimeLog.info("Using " + spinnerThreads.length + " spinner threads");
         for (int i = 0; i < spinnerThreads.length; i++) {
             spinnerThreads[i] = new Thread() {
                 @Override
@@ -911,6 +911,12 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         return (int)(this.getTotalFrames() / (timeDif / 1000));
     }
 
+    public int getTargetFPS(){
+        return this.refreshRate;
+    }
+
+
+
     public void setFPS(int target) {
         this.refreshRate = target;
     }
@@ -922,6 +928,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     public int getTotalFrames() {
         return totalFrames;
     }
+
+    public int getFramesLost() {return framesLost;}
+
+    public int getBitrate() {return bitrate;}
 
     public class RendererException extends RuntimeException {
         private static final long serialVersionUID = 8985937536997012406L;
