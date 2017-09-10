@@ -140,6 +140,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float dl_bandwidth;
     private float handover_disruption;
     private int sr_period, sr_config_index;
+    private float ho_prediction_timestamp, ho_timestamp;
+    private String ho_prediction_target, ho_target;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
@@ -181,7 +183,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
 
             }
+            else if(intent.getAction().equals("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION")){
 
+                Log.i("Yuanjie-Game","MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION");
+                ho_prediction_timestamp = Float.parseFloat(intent.getStringExtra("Timestamp"));
+                ho_prediction_target = intent.getStringExtra("event");
+
+            }
+            else if(intent.getAction().equals("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT")){
+
+                Log.i("Yuanjie-Game","MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT");
+                ho_timestamp = Float.parseFloat(intent.getStringExtra("Timestamp"));
+                ho_target = intent.getStringExtra("event");
+
+            }
         }
     };
 
@@ -194,12 +209,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         IntentFilter rrc_sr_filter = new IntentFilter("MobileInsight.RrcSrAnalyzer.RRC_SR");
         IntentFilter phy_filter = new IntentFilter("MobileInsight.LtePhyAnalyzer.LTE_DL_BW");
         IntentFilter handover_disruption_filter = new IntentFilter("MobileInsight.LteHandoverDisruptionAnalyzer.HANDOVER_LATENCY");
+        IntentFilter handover_prediction_filter = new IntentFilter("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT");
+        IntentFilter handover_prediction_filter_2 = new IntentFilter("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION");
         IntentFilter sr_config_filter = new IntentFilter("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX");
         registerReceiver(MobileInsight_Receiver, ul_latency_filter);
         registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
         registerReceiver(MobileInsight_Receiver, phy_filter);
         registerReceiver(MobileInsight_Receiver, handover_disruption_filter);
         registerReceiver(MobileInsight_Receiver, sr_config_filter);
+        registerReceiver(MobileInsight_Receiver, handover_prediction_filter);
+        registerReceiver(MobileInsight_Receiver, handover_prediction_filter_2);
 
 
         shortcutHelper = new ShortcutHelper(this);
@@ -399,6 +418,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                                 + " trans: " + String.valueOf(trans_delay) + ")\n";
                         stats += "SrConfig Period: " + String.valueOf(sr_period) +"ms\n";
                         stats += "handover disruption: " + String.valueOf(handover_disruption)+"ms\n";
+                        stats += "handover prediction: " + String.valueOf(ho_prediction_timestamp)+"ms\n";
+                        stats += "handover event: " + String.valueOf(ho_timestamp)+"ms\n";
+                        stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
+                                +" "+String.valueOf(ho_prediction_timestamp)
+                                +" "+String.valueOf(ho_timestamp)+"\n";
                         setStatsText(statsTextView, stats);
                         // Log.i("game","Zhaowei: UI thread running");
                         // new_packet = false;
