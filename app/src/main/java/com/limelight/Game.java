@@ -140,7 +140,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float dl_bandwidth;
     private float handover_disruption;
     private int sr_period, sr_config_index;
-    private float ho_prediction_timestamp, ho_timestamp;
+    private float ho_prediction_timestamp = -1, ho_timestamp = -1;
     private String ho_prediction_target, ho_target;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
@@ -418,11 +418,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                                 + " trans: " + String.valueOf(trans_delay) + ")\n";
                         stats += "SrConfig Period: " + String.valueOf(sr_period) +"ms\n";
                         stats += "handover disruption: " + String.valueOf(handover_disruption)+"ms\n";
-                        stats += "handover prediction: " + String.valueOf(ho_prediction_timestamp)+"ms\n";
-                        stats += "handover event: " + String.valueOf(ho_timestamp)+"ms\n";
-                        stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
-                                +" "+String.valueOf(ho_prediction_timestamp)
-                                +" "+String.valueOf(ho_timestamp)+"\n";
+                        if (ho_prediction_timestamp!=-1 && ho_timestamp!=-1)
+                            stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
+                                    +" "+String.valueOf(ho_prediction_timestamp)
+                                    +" "+String.valueOf(ho_timestamp)+"\n";
                         setStatsText(statsTextView, stats);
                         // Log.i("game","Zhaowei: UI thread running");
                         // new_packet = false;
