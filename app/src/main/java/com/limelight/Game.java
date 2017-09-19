@@ -68,6 +68,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.text.DateFormat;
+import java.util.Date;
 
 
 public class Game extends Activity implements SurfaceHolder.Callback,
@@ -397,7 +399,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 while(true){
                     if (new_packet) {
                         SystemClock.sleep(2000);
-                        decoderRenderer.setFPS(30);
+                        // decoderRenderer.setFPS(30);
                         int totalFrames = decoderRenderer.getTotalFrames();
                         int avgLatency = decoderRenderer.getAverageDecoderLatency();
                         int currentFps = decoderRenderer.getFPS();
@@ -848,6 +850,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     // Returns true if the event was consumed
     private boolean handleMotionEvent(MotionEvent event) {
+
+        String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
+        Log.i("decoder","Zhaowei: The motion uploading time is " + String.valueOf(currentDateTimeString));
+
         // Pass through keyboard input if we're not grabbing
         if (!grabbedInput) {
             return false;
@@ -988,6 +994,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 case MotionEvent.ACTION_MOVE:
                     // ACTION_MOVE is special because it always has actionIndex == 0
                     // We'll call the move handlers for all indexes manually
+
+
 
                     // First process the historical events
                     for (int i = 0; i < event.getHistorySize(); i++) {
