@@ -688,7 +688,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
 
 
-        int max_freq = getBandFromKPIMap();
+        // int max_freq = getBandFromKPIMap();
+        int max_freq = 0;
 
         Log.i("PC", "max available dl freq is: " + String.valueOf(max_freq));
 
