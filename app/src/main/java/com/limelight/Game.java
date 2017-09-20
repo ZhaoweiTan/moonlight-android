@@ -143,6 +143,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float ho_prediction_timestamp = -1, ho_timestamp = -1;
     private String ho_prediction_target, ho_target;
 
+    private float cell_load, estimated_bandwidth;
+
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -197,6 +199,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 ho_target = intent.getStringExtra("event");
 
             }
+            else if(intent.getAction().equals("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION")){
+                cell_load = Float.parseFloat(intent.getStringExtra("Cell load"));
+                estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
+
+            }
         }
     };
 
@@ -212,6 +219,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         IntentFilter handover_prediction_filter = new IntentFilter("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT");
         IntentFilter handover_prediction_filter_2 = new IntentFilter("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION");
         IntentFilter sr_config_filter = new IntentFilter("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX");
+        IntentFilter bandwidth_prediction_filter = new IntentFilter("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION");
         registerReceiver(MobileInsight_Receiver, ul_latency_filter);
         registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
         registerReceiver(MobileInsight_Receiver, phy_filter);
@@ -219,6 +227,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         registerReceiver(MobileInsight_Receiver, sr_config_filter);
         registerReceiver(MobileInsight_Receiver, handover_prediction_filter);
         registerReceiver(MobileInsight_Receiver, handover_prediction_filter_2);
+        registerReceiver(MobileInsight_Receiver, bandwidth_prediction_filter);
 
 
         shortcutHelper = new ShortcutHelper(this);
@@ -409,7 +418,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         stats += "Frame loss: " + String.valueOf(framesLost) + "\n";
                         stats += "FPS: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
                         stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
-                        stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
+//                        stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
+                        stats += "Cell load: " + String.valueOf(cell_load) + "\n";
+                        stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
                         stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
                         stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
                         stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
