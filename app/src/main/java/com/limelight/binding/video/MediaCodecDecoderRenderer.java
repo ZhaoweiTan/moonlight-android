@@ -584,11 +584,18 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         }
 
         String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
-        Log.i("decoder","Zhaowei: The Receiving frame time is " + String.valueOf(currentDateTimeString));
+        // Log.i("decoder","Zhaowei: The Receiving frame time is " + String.valueOf(currentDateTimeString));
 
 
         // Zhaowei: will there be frame comes out of order into this function, since UDP is used?
         // If yes, then this is strange: The out of order frames are also rendered. We have to re-write to ensure order
+        if (frameNumber != lastFrameNumber && frameNumber != lastFrameNumber + 1) {
+            Log.i("decoder", "Zhaowei: The frame num is " + String.valueOf(frameNumber) + " and lost frames: " + String.valueOf(frameNumber - lastFrameNumber - 1));
+        } else {
+            Log.i("decoder", "Zhaowei: The frame num is " + String.valueOf(frameNumber));
+        }
+
+
 
         lastFrameNumber = frameNumber;
 

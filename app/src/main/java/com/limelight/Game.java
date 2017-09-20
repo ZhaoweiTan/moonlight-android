@@ -852,7 +852,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean handleMotionEvent(MotionEvent event) {
 
         String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
-        Log.i("decoder","Zhaowei: The motion uploading time is " + String.valueOf(currentDateTimeString));
+        // Log.i("decoder","Zhaowei: The motion uploading time is " + String.valueOf(currentDateTimeString));
 
         // Pass through keyboard input if we're not grabbing
         if (!grabbedInput) {
