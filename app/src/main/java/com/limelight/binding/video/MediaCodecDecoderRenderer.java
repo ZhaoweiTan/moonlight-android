@@ -75,6 +75,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     private int numVpsIn;
 
     Date startTime;
+    Date lastTime;
+
+    private int framesLostPeriod;
+    private int totalFramesPeriod;
 
 
     // private TextView statsView;
@@ -128,6 +132,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         Log.i("decoder","Zhaowei: The bit rate target is " + String.valueOf(bitrate));
 
         startTime = new Date();
+        lastTime = new Date();
 
         // this.statsView = t;
 
@@ -572,7 +577,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     @Override
     public int submitDecodeUnit(byte[] frameData, int frameLength, int frameNumber, long receiveTimeMs) {
         totalFrames++;
-
+        totalFramesPeriod++;
         // statsView.setText(String.valueOf(totalFrames));
 
 
@@ -580,6 +585,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         // In that case, each frame start NALU is submitted independently.
         if (frameNumber != lastFrameNumber && frameNumber != lastFrameNumber + 1) {
             framesLost += frameNumber - lastFrameNumber - 1;
+            framesLostPeriod += frameNumber - lastFrameNumber - 1;
             frameLossEvents++;
         }
 
@@ -926,6 +932,15 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         return (int)(this.getTotalFrames() / (timeDif / 1000));
     }
 
+    public int getFPSPeriod() {
+        Date currentTime = new Date();
+        float timeDif = currentTime.getTime() - startTime.getTime();
+        startTime = currentTime;
+        int tmpFrame = this.totalFramesPeriod;
+        this.totalFramesPeriod = 0;
+        return (int)(tmpFrame / (timeDif / 1000));
+    }
+
     public int getTargetFPS(){
         return this.refreshRate;
     }
@@ -945,6 +960,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
     }
 
     public int getFramesLost() {return framesLost;}
+
+    public int getFramesLostPeriod() {
+        int tmp = framesLostPeriod;
+        framesLostPeriod = 0;
+        return tmp;
+    }
+
 
     public int getBitrate() {return bitrate;}
 

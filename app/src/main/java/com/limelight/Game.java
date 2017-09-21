@@ -411,19 +411,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         // decoderRenderer.setFPS(30);
                         int totalFrames = decoderRenderer.getTotalFrames();
                         int avgLatency = decoderRenderer.getAverageDecoderLatency();
-                        int currentFps = decoderRenderer.getFPS();
+                        int currentFps = decoderRenderer.getFPSPeriod();
                         int targetFps = decoderRenderer.getTargetFPS();
                         int avg_e2e_delay = decoderRenderer.getAverageEndToEndLatency();
-                        int framesLost = decoderRenderer.getFramesLost();
+                        int framesLost = decoderRenderer.getFramesLostPeriod();
                         int bitrate = decoderRenderer.getBitrate();
-                        String stats = "Total frames: " + String.valueOf(totalFrames) + "\n";
-                        stats += "Frame loss: " + String.valueOf(framesLost) + "\n";
-                        stats += "FPS: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
-                        stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
+                        String stats = "";
+                        // stats += "Total frames: " + String.valueOf(totalFrames) + "\n";
+                        stats += "Frame loss in last period: " + String.valueOf(framesLost) + "\n";
+                        stats += "FPS in last period: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
+                        // stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
 //                        stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
                         stats += "Cell load: " + String.valueOf(cell_load) + "\n";
                         stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
-                        stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
+                        // stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
                         stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
                         stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
                         stats += "    (wait: " + String.valueOf(wait_delay)
