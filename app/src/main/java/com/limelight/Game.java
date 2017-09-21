@@ -146,67 +146,74 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private String ho_prediction_target, ho_target;
 
     private float cell_load, estimated_bandwidth;
+    private int mac_loss, rlc_loss;
+    private float mac_retx_delay, rlc_retx_delay;
+    private int ul_queue_length;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if(intent.getAction().equals("android.appwidget.action.APPWIDGET_ENABLED")) {
+            if (intent.getAction().equals("android.appwidget.action.APPWIDGET_ENABLED")) {
                 //TODO: ???
-            }
-            else if(intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")){
+            } else if (intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")) {
 
 //                Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
-                if (intent.getStringExtra("pkt_size")!=null && intent.getStringExtra("wait_delay")!=null
-                        && intent.getStringExtra("proc_delay")!=null && intent.getStringExtra("trans_delay") != null) {
+                if (intent.getStringExtra("pkt_size") != null && intent.getStringExtra("wait_delay") != null
+                        && intent.getStringExtra("proc_delay") != null && intent.getStringExtra("trans_delay") != null) {
                     pkt_size = Integer.parseInt(intent.getStringExtra("pkt_size"));
                     wait_delay = Integer.parseInt(intent.getStringExtra("wait_delay"));
                     proc_delay = Integer.parseInt(intent.getStringExtra("proc_delay"));
                     trans_delay = Integer.parseInt(intent.getStringExtra("trans_delay"));
-                    ul_total_delay =  wait_delay+proc_delay+trans_delay;
+                    ul_total_delay = wait_delay + proc_delay + trans_delay;
                     new_packet = true;
                 }
-            }
-            else if(intent.getAction().equals("MobileInsight.LtePhyAnalyzer.LTE_DL_BW")){
+            } else if (intent.getAction().equals("MobileInsight.LtePhyAnalyzer.LTE_DL_BW")) {
 
 //                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
                 dl_bandwidth = Float.parseFloat(intent.getStringExtra("Predicted Bandwidth (Mbps)"));
 
-            }
-            else if(intent.getAction().equals("MobileInsight.LteHandoverDisruptionAnalyzer.HANDOVER_LATENCY")){
+            } else if (intent.getAction().equals("MobileInsight.LteHandoverDisruptionAnalyzer.HANDOVER_LATENCY")) {
 
 //                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
                 handover_disruption = Float.parseFloat(intent.getStringExtra("uplink_disruption"));
 
-            }
-            else if(intent.getAction().equals("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX")){
+            } else if (intent.getAction().equals("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX")) {
 
 //                Log.i("Yuanjie-Game","MobileInsight.RrcSrAnalyzer.RRC_SR");
                 sr_period = Integer.parseInt(intent.getStringExtra("period"));
                 sr_config_index = Integer.parseInt(intent.getStringExtra("config idx"));
 
 
-            }
-            else if(intent.getAction().equals("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION")){
+            } else if (intent.getAction().equals("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION")) {
 
-                Log.i("Yuanjie-Game","MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION");
+                Log.i("Yuanjie-Game", "MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION");
                 ho_prediction_timestamp = Float.parseFloat(intent.getStringExtra("Timestamp"));
                 ho_prediction_target = intent.getStringExtra("event");
 
-            }
-            else if(intent.getAction().equals("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT")){
+            } else if (intent.getAction().equals("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT")) {
 
-                Log.i("Yuanjie-Game","MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT");
+                Log.i("Yuanjie-Game", "MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_EVENT");
                 ho_timestamp = Float.parseFloat(intent.getStringExtra("Timestamp"));
                 ho_target = intent.getStringExtra("event");
 
-            }
-            else if(intent.getAction().equals("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION")){
+            } else if (intent.getAction().equals("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION")) {
                 cell_load = Float.parseFloat(intent.getStringExtra("Cell load"));
                 estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
 
+            } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.MAC_RETX")) {
+                mac_loss = Integer.parseInt(intent.getStringExtra("packet loss (pkt/s)"));
+                mac_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
+
+            } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.RLC_RETX")) {
+                rlc_loss = Integer.parseInt(intent.getStringExtra("packet loss (pkt/s)"));
+                rlc_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
+            }
+            else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.UL_QUEUE_LENGTH")) {
+                ul_queue_length = Integer.parseInt(intent.getStringExtra("length"));
             }
         }
+
     };
 
     @Override
@@ -222,6 +229,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         IntentFilter handover_prediction_filter_2 = new IntentFilter("MobileInsight.LteHandoverPredictionAnalyzer.HANDOVER_PREDICTION");
         IntentFilter sr_config_filter = new IntentFilter("MobileInsight.RrcConfigAnalyzer.SR_CONFIGIDX");
         IntentFilter bandwidth_prediction_filter = new IntentFilter("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION");
+        IntentFilter mac_loss_filter = new IntentFilter("MobileInsight.LteMacAnalyzer.MAC_RETX");
+        IntentFilter rlc_loss_filter = new IntentFilter("MobileInsight.LteMacAnalyzer.RLC_RETX");
         registerReceiver(MobileInsight_Receiver, ul_latency_filter);
         registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
         registerReceiver(MobileInsight_Receiver, phy_filter);
@@ -230,6 +239,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         registerReceiver(MobileInsight_Receiver, handover_prediction_filter);
         registerReceiver(MobileInsight_Receiver, handover_prediction_filter_2);
         registerReceiver(MobileInsight_Receiver, bandwidth_prediction_filter);
+        registerReceiver(MobileInsight_Receiver, mac_loss_filter);
+        registerReceiver(MobileInsight_Receiver, rlc_loss_filter);
 
 
         shortcutHelper = new ShortcutHelper(this);
@@ -420,16 +431,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         stats += "Frame loss: " + String.valueOf(framesLost) + "\n";
                         stats += "FPS: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
                         stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
-//                        stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
-                        stats += "Cell load: " + String.valueOf(cell_load) + "\n";
-                        stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
                         stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
                         stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
+//                        stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
+                        stats += "--- (LTE KPIs) ---\n";
+                        stats += "Cell load: " + String.valueOf(cell_load) + "\n";
+                        stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
                         stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
                         stats += "    (wait: " + String.valueOf(wait_delay)
                                 + " proc: " + String.valueOf(proc_delay)
                                 + " trans: " + String.valueOf(trans_delay) + ")\n";
+                        stats += "uplink queue length: "+String.valueOf(ul_queue_length)+" ms\n";
+                        stats += "MAC loss/retx: "+String.valueOf(mac_loss)+" pkt/s, "+ String.valueOf(mac_retx_delay) +" ms/pkt\n";
+                        stats += "RLC loss/retx: "+String.valueOf(rlc_loss)+" pkt/s, "+ String.valueOf(rlc_retx_delay) +" ms/pkt\n";
                         stats += "SrConfig Period: " + String.valueOf(sr_period) +"ms\n";
+
                         stats += "handover disruption: " + String.valueOf(handover_disruption)+"ms\n";
                         if (ho_prediction_timestamp!=-1 && ho_timestamp!=-1)
                             stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
