@@ -66,6 +66,7 @@ import android.widget.Toast;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.text.DateFormat;
@@ -457,6 +458,31 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         setStatsText(statsTextView, stats);
                         // Log.i("game","Zhaowei: UI thread running");
                         // new_packet = false;
+
+
+
+                        String filename = "test.csv";
+                        String csvString = "";
+                        FileOutputStream outputStream;
+
+                        csvString += String.valueOf(framesLost) + ',';
+                        csvString += String.valueOf(cell_load) + ',';
+                        csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
+                        csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
+                        csvString += '\n';
+
+                        try {
+                            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
+                            outputStream.write(csvString.getBytes());
+                            outputStream.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+//                        if (framesLost > 0) {
+//                            Log.i("decoder", "Zhaowei: " + stats);
+//                        }
+
                         new_packet = true;
                     }
                 }
