@@ -146,7 +146,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private String ho_prediction_target, ho_target;
 
     private float cell_load, estimated_bandwidth;
-    private int mac_loss, rlc_loss;
+    private float mac_loss, rlc_loss;
     private float mac_retx_delay, rlc_retx_delay;
     private int ul_queue_length;
 
@@ -202,11 +202,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
 
             } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.MAC_RETX")) {
-                mac_loss = Integer.parseInt(intent.getStringExtra("packet loss (pkt/s)"));
+                mac_loss = Float.parseFloat(intent.getStringExtra("packet loss (pkt/s)"));
                 mac_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
 
             } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.RLC_RETX")) {
-                rlc_loss = Integer.parseInt(intent.getStringExtra("packet loss (pkt/s)"));
+                rlc_loss = Float.parseFloat(intent.getStringExtra("packet loss (pkt/s)"));
                 rlc_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
             }
             else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.UL_QUEUE_LENGTH")) {
