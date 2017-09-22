@@ -66,6 +66,7 @@ import android.widget.Toast;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
@@ -417,12 +418,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         Runnable printStats = new Runnable() {
             @Override
             public void run() {
+                String filename = "results.csv";
+                FileOutputStream outputStream = null;
+                try {
+                    outputStream = openFileOutput(filename, MODE_APPEND);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+
                 while(true){
                     if (new_packet) {
                         SystemClock.sleep(2000);
                         // decoderRenderer.setFPS(30);
                         int totalFrames = decoderRenderer.getTotalFrames();
                         int avgLatency = decoderRenderer.getAverageDecoderLatency();
+                        int transLatency = decoderRenderer.getTransDelay();
                         int currentFps = decoderRenderer.getFPSPeriod();
                         int targetFps = decoderRenderer.getTargetFPS();
                         int avg_e2e_delay = decoderRenderer.getAverageEndToEndLatency();
@@ -433,6 +443,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         // stats += "Total frames: " + String.valueOf(totalFrames) + "\n";
                         stats += "Frame loss in last period: " + String.valueOf(framesLost) + "\n";
                         stats += "FPS in last period: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
+                        stats += "Transmission delay: " + String.valueOf(transLatency) + "\n";
                         // stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
                         // stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
                         stats += "--- (LTE KPIs) ---\n";
@@ -440,7 +451,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
 
                         // stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
-                        stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
+                        // stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
                         stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
                         stats += "    (wait: " + String.valueOf(wait_delay)
                                 + " proc: " + String.valueOf(proc_delay)
@@ -461,20 +472,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
 
 
-                        String filename = "test.csv";
                         String csvString = "";
-                        FileOutputStream outputStream;
 
                         csvString += String.valueOf(framesLost) + ',';
                         csvString += String.valueOf(cell_load) + ',';
                         csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
                         csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
+                        csvString += String.valueOf(transLatency) + ',';
                         csvString += '\n';
 
                         try {
-                            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
                             outputStream.write(csvString.getBytes());
-                            outputStream.close();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }

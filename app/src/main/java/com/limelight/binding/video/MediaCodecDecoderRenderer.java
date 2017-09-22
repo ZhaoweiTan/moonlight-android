@@ -79,6 +79,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
 
     private int framesLostPeriod;
     private int totalFramesPeriod;
+    private int transDelayPeriod;
 
 
     // private TextView statsView;
@@ -615,6 +616,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
             totalTimeMs += (timestampUs / 1000) - receiveTimeMs;
         }
 
+        transDelayPeriod += (timestampUs / 1000) - receiveTimeMs;
+
+
         if (timestampUs <= lastTimestampUs) {
             // We can't submit multiple buffers with the same timestamp
             // so bump it up by one before queuing
@@ -967,6 +971,16 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer {
         return tmp;
     }
 
+    public int getTransDelay() {
+        int tmp = transDelayPeriod;
+        transDelayPeriod = 0;
+        if (this.totalFramesPeriod == 0) {
+            return 0;
+        } else {
+            return tmp/this.totalFramesPeriod;
+
+        }
+    }
 
     public int getBitrate() {return bitrate;}
 
