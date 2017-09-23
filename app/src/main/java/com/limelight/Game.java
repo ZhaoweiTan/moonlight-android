@@ -138,7 +138,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_PC_NAME = "PcName";
 
     // private boolean new_packet = false;
-    private boolean new_packet = true;
+    // private boolean new_packet = true;
+    private boolean new_rlc = false;
+    private boolean new_mac = false;
+
 
     private int pkt_size, wait_delay, proc_delay, trans_delay, ul_total_delay;
     private float dl_bandwidth;
@@ -168,7 +171,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     proc_delay = Integer.parseInt(intent.getStringExtra("proc_delay"));
                     trans_delay = Integer.parseInt(intent.getStringExtra("trans_delay"));
                     ul_total_delay = wait_delay + proc_delay + trans_delay;
-                    new_packet = true;
                 }
             } else if (intent.getAction().equals("MobileInsight.LtePhyAnalyzer.LTE_DL_BW")) {
 
@@ -204,10 +206,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
 
             } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.MAC_RETX")) {
+                new_mac = true;
                 mac_loss = Float.parseFloat(intent.getStringExtra("packet loss (pkt/s)"));
                 mac_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
 
             } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.RLC_RETX")) {
+                new_rlc = true;
                 rlc_loss = Float.parseFloat(intent.getStringExtra("packet loss (pkt/s)"));
                 rlc_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
             }
@@ -427,72 +431,79 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 }
 
                 while(true){
-                    if (new_packet) {
-                        SystemClock.sleep(2000);
-                        // decoderRenderer.setFPS(30);
-                        int totalFrames = decoderRenderer.getTotalFrames();
-                        int avgLatency = decoderRenderer.getAverageDecoderLatency();
-                        int transLatency = decoderRenderer.getTransDelay();
-                        int currentFps = decoderRenderer.getFPSPeriod();
-                        int targetFps = decoderRenderer.getTargetFPS();
-                        int avg_e2e_delay = decoderRenderer.getAverageEndToEndLatency();
-                        int framesLost = decoderRenderer.getFramesLostPeriod();
-                        int bitrate = decoderRenderer.getBitrate();
+                    SystemClock.sleep(1000);
+                    // decoderRenderer.setFPS(30);
+                    int totalFrames = decoderRenderer.getTotalFrames();
+                    int avgLatency = decoderRenderer.getAverageDecoderLatency();
+                    int transLatency = decoderRenderer.getTransDelay();
+                    int currentFps = decoderRenderer.getFPSPeriod();
+                    int targetFps = decoderRenderer.getTargetFPS();
+                    int avg_e2e_delay = decoderRenderer.getAverageEndToEndLatency();
+                    int framesLost = decoderRenderer.getFramesLostPeriod();
+                    int bitrate = decoderRenderer.getBitrate();
 
-                        String stats = "";
-                        // stats += "Total frames: " + String.valueOf(totalFrames) + "\n";
-                        stats += "Frame loss in last period: " + String.valueOf(framesLost) + "\n";
-                        stats += "FPS in last period: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
-                        stats += "Transmission delay: " + String.valueOf(transLatency) + "\n";
-                        // stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
-                        // stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
-                        stats += "--- (LTE KPIs) ---\n";
-                        stats += "Cell load: " + String.valueOf(cell_load) + "\n";
-                        stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
-
-                        // stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
-                        // stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
-                        stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
-                        stats += "    (wait: " + String.valueOf(wait_delay)
-                                + " proc: " + String.valueOf(proc_delay)
-                                + " trans: " + String.valueOf(trans_delay) + ")\n";
-                        stats += "uplink queue length: "+String.valueOf(ul_queue_length)+" ms\n";
-                        stats += "MAC loss/retx: "+String.valueOf(mac_loss)+" pkt/s, "+ String.valueOf(mac_retx_delay) +" ms/pkt\n";
-                        stats += "RLC loss/retx: "+String.valueOf(rlc_loss)+" pkt/s, "+ String.valueOf(rlc_retx_delay) +" ms/pkt\n";
-                        stats += "SrConfig Period: " + String.valueOf(sr_period) +"ms\n";
-
-                        stats += "handover disruption: " + String.valueOf(handover_disruption)+"ms\n";
-                        if (ho_prediction_timestamp!=-1 && ho_timestamp!=-1)
-                            stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
-                                    +" "+String.valueOf(ho_prediction_timestamp)
-                                    +" "+String.valueOf(ho_timestamp)+"\n";
-                        setStatsText(statsTextView, stats);
-                        // Log.i("game","Zhaowei: UI thread running");
-                        // new_packet = false;
+                    if (!new_mac) {
+                        mac_loss = 0;
+                        mac_retx_delay = 0;
+                        rlc_loss = 0;
+                        rlc_retx_delay = 0;
+                    }
 
 
+                    String stats = "";
+                    // stats += "Total frames: " + String.valueOf(totalFrames) + "\n";
+                    stats += "Frame loss in last period: " + String.valueOf(framesLost) + "\n";
+                    stats += "FPS in last period: " + String.valueOf(currentFps) + " Target: "+targetFps+"\n";
+                    stats += "Transmission delay: " + String.valueOf(transLatency) + "\n";
+                    // stats += "Target bitrate: " + String.valueOf(bitrate) + "Mbps\n";
+                    // stats += "Runtime bandwidth: " + String.valueOf(dl_bandwidth) +" Mbps\n";
+                    stats += "--- (LTE KPIs) ---\n";
+                    stats += "Cell load: " + String.valueOf(cell_load) + "\n";
+                    stats += "Estimated bandwidth: " + String.valueOf(estimated_bandwidth) +" Mbps\n";
 
-                        String csvString = "";
+                    // stats += "Average end-to-end delay: " + String.valueOf(avg_e2e_delay) + "\n";
+                    // stats += "Average decoding latency: " + String.valueOf(avgLatency) + "\n";
+                    stats += "uplink delay: "+String.valueOf(ul_total_delay)+" ms\n";
+                    stats += "    (wait: " + String.valueOf(wait_delay)
+                            + " proc: " + String.valueOf(proc_delay)
+                            + " trans: " + String.valueOf(trans_delay) + ")\n";
+                    stats += "uplink queue length: "+String.valueOf(ul_queue_length)+" ms\n";
+                    stats += "MAC loss/retx: "+String.valueOf(mac_loss)+" pkt/s, "+ String.valueOf(mac_retx_delay) +" ms/pkt\n";
+                    stats += "RLC loss/retx: "+String.valueOf(rlc_loss)+" pkt/s, "+ String.valueOf(rlc_retx_delay) +" ms/pkt\n";
+                    stats += "SrConfig Period: " + String.valueOf(sr_period) +"ms\n";
 
-                        csvString += String.valueOf(framesLost) + ',';
-                        csvString += String.valueOf(cell_load) + ',';
-                        csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
-                        csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
-                        csvString += String.valueOf(transLatency) + ',';
-                        csvString += '\n';
+                    stats += "handover disruption: " + String.valueOf(handover_disruption)+"ms\n";
+                    if (ho_prediction_timestamp!=-1 && ho_timestamp!=-1)
+                        stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
+                                +" "+String.valueOf(ho_prediction_timestamp)
+                                +" "+String.valueOf(ho_timestamp)+"\n";
+                    setStatsText(statsTextView, stats);
+                    // Log.i("game","Zhaowei: UI thread running");
+                    // new_packet = false;
 
-                        try {
-                            outputStream.write(csvString.getBytes());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+
+
+                    String csvString = "";
+
+                    csvString += String.valueOf(framesLost) + ',';
+                    csvString += String.valueOf(cell_load) + ',';
+                    csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
+                    csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
+                    csvString += String.valueOf(transLatency) + ',';
+                    csvString += '\n';
+
+                    try {
+                        outputStream.write(csvString.getBytes());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
 //                        if (framesLost > 0) {
 //                            Log.i("decoder", "Zhaowei: " + stats);
 //                        }
+                    new_mac = false;
+                    new_rlc = false;
 
-                        new_packet = true;
-                    }
                 }
             }
         };
