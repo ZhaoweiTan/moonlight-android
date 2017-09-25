@@ -81,6 +81,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private ShortcutHelper shortcutHelper;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean freezeUpdates, runningPolling, inForeground;
+    private LocationManager mLocationManager = null;
+    private LocationListener mLocationListeners;
+    private static final String TAG = "PCView";
+
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -115,6 +119,36 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         // Reinitialize views just in case orientation changed
         initializeViews();
+    }
+
+    private class LocationListener implements android.location.LocationListener {
+        Location mLastLocation;
+
+        public LocationListener(String provider) {
+            Log.e(TAG, "LocationListener " + provider);
+            mLastLocation = new Location(provider);
+        }
+
+        @Override
+        public void onLocationChanged(Location location) {
+            Log.e(TAG, "onLocationChanged: " + location);
+            mLastLocation.set(location);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            Log.e(TAG, "onProviderDisabled: " + provider);
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            Log.e(TAG, "onProviderEnabled: " + provider);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.e(TAG, "onStatusChanged: " + provider);
+        }
     }
 
     private final static int APP_LIST_ID = 1;
@@ -186,6 +220,22 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         pcGridAdapter = new PcGridAdapter(this,
                 PreferenceConfiguration.readPreferences(this).listMode,
                 PreferenceConfiguration.readPreferences(this).smallIconMode);
+
+        try {
+            mLocationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+            mLocationListeners = new LocationListener(LocationManager.GPS_PROVIDER);
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    1000,
+                    10f,
+                    mLocationListeners
+            );
+        } catch (java.lang.SecurityException ex) {
+            Log.i(TAG, "fail to request location update, ignore", ex);
+        } catch (IllegalArgumentException ex) {
+            Log.d(TAG, "network provider does not exist, " + ex.getMessage());
+        }
+
 
 
 
@@ -688,8 +738,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
 
 
-        // int max_freq = getBandFromKPIMap();
-        int max_freq = 0;
+        float max_freq = getBandFromKPIMap();
+//        int max_freq = 0;
 
         Log.i("PC", "max available dl freq is: " + String.valueOf(max_freq));
 
@@ -772,58 +822,72 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         return res;
     }
 
-    private int getBandFromKPIMap() {
+    private float getBandFromKPIMap() {
 
-        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//
+//
+//        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//        if (location ==  null)
+//            return -1;
+//        double longitude = location.getLongitude();
+//        double latitude = location.getLatitude();
+
+        double longitude = mLocationListeners.mLastLocation.getLongitude();
+        double latitude = mLocationListeners.mLastLocation.getLatitude();
 
 
-        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        double longitude = location.getLongitude();
-        double latitude = location.getLatitude();
-
-        Log.i("PC", "Logitude is " + String.valueOf(longitude) + "; latitude is " + String.valueOf(latitude));
+        Log.i(TAG, "Logitude is " + String.valueOf(longitude) + "; latitude is " + String.valueOf(latitude));
 
 
 
         // Substitute the default with the one using our own GPS later
         String[] urls = new String[3];
-        urls[0] = "http://34.213.149.155/kpi_log/getLog/all/all/VR/?Lat=" + String.valueOf(latitude) + "&Lng=" + String.valueOf(longitude);
-        urls[1] = "Verizon Wireless-311480";
-        urls[2] = "DL_Freq";
+        urls[0] = "http://knowledge-map.xyz/kpi_log/frequency_band/?Lat=" + String.valueOf(latitude) + "&Lng=" + String.valueOf(longitude);
+//        urls[0] = "http://knowledge-map.xyz/kpi_log/frequency_band/?Lat=34.06979594&Lng=-118.44237744";
+        urls[1] = "Fi Network-310260";
+//        urls[2] = "DL_Freq";
+        urls[2] = "DL_Bandwidth";
 
         // Note that if there're no records near the location, could return empty list
-        List<Integer> fband_list = null;
+        List<Float> fband_list = null;
         try {
             fband_list = new GetKPITask().execute(urls).get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
+//            fband_list = getFreqBand(urls);
+            Log.i(TAG, "Frequency band list:"+fband_list.toString());
+        } catch (Exception e) {
+
+            Log.e(TAG, "Exception!!!");
+            Log.e(TAG, e.toString());
+
         }
         if (fband_list != null) {
             Collections.sort(fband_list, Collections.reverseOrder());
         }
 
         return fband_list.get(0);
+
     }
 
+    class GetKPITask extends AsyncTask<String, Void, List<Float>>
+    {
 
 
-    class GetKPITask extends AsyncTask<String, Void, List<Integer>> {
+        protected void onPreExecute() {
+            //display progress dialog.
 
-
-        @Override
-        protected List<Integer> doInBackground(String... urls) {
-
-            List<Integer> fband_avail = new ArrayList<Integer>();
+        }
+        protected List<Float> doInBackground(String... urls) {
+            List<Float> fband_avail = new ArrayList<Float>();
 
             try {
                 URL KPIMap = new URL(urls[0]);
                 HttpURLConnection urlConnection = (HttpURLConnection) KPIMap.openConnection();
 
+
                 int code = urlConnection.getResponseCode();
 
-                Log.i("PC", String.valueOf(code));
+                Log.i(TAG, String.valueOf(code));
 
                 if (code == 200) {
                     BufferedReader br = new BufferedReader(new InputStreamReader((urlConnection.getInputStream())));
@@ -833,25 +897,79 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
                     while ((inputLine = br.readLine()) != null)
                         html = html + inputLine;
-                    Log.i("PC", html);
+                    Log.i(TAG, html);
                     JSONObject fband = new JSONObject(html);
                     JSONArray fband_carrier = fband.getJSONArray(urls[1]);
                     for (int i = 0; i < fband_carrier.length(); i++) {
-                        Log.i("PC", fband_carrier.getJSONObject(i).getString(urls[2]));
-                        fband_avail.add(Integer.parseInt(fband_carrier.getJSONObject(i).getString(urls[2])));
+                        Log.i(TAG, fband_carrier.getJSONObject(i).getString(urls[2]));
+                        fband_avail.add(Float.parseFloat(fband_carrier.getJSONObject(i).getString(urls[2])));
                     }
 
                 }
 
             } catch (MalformedURLException e) {
-                e.printStackTrace();
+                Log.e(TAG, "MalformedURLException!!!");
+                Log.e(TAG, e.toString());
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "IOException!!!",e);
             } catch (JSONException e) {
-                e.printStackTrace();
+                Log.e(TAG, "JSONException!!!",e);
+            } catch (Exception e) {
+                Log.e(TAG, "Exception!!!",e);
             }
 
             return fband_avail;
         }
+
     }
+
+    private List<Integer> getFreqBand(String... urls){
+        List<Integer> fband_avail = new ArrayList<Integer>();
+
+        try {
+                URL KPIMap = new URL(urls[0]);
+                HttpURLConnection urlConnection = (HttpURLConnection) KPIMap.openConnection();
+
+
+                int code = urlConnection.getResponseCode();
+
+                Log.i(TAG, String.valueOf(code));
+
+                if (code == 200) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader((urlConnection.getInputStream())));
+                    String inputLine;
+                    String html = "";
+
+
+                    while ((inputLine = br.readLine()) != null)
+                        html = html + inputLine;
+                    Log.i(TAG, html);
+                    JSONObject fband = new JSONObject(html);
+                    JSONArray fband_carrier = fband.getJSONArray(urls[1]);
+                    for (int i = 0; i < fband_carrier.length(); i++) {
+                        Log.i(TAG, fband_carrier.getJSONObject(i).getString(urls[2]));
+                        fband_avail.add(Integer.parseInt(fband_carrier.getJSONObject(i).getString(urls[2])));
+                    }
+
+                }
+
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "MalformedURLException!!!");
+            Log.e(TAG, e.toString());
+        } catch (IOException e) {
+            Log.e(TAG, "IOException!!!");
+            Log.e(TAG, e.toString());
+        } catch (JSONException e) {
+            Log.e(TAG, "JSONException!!!");
+            Log.e(TAG, e.toString());
+        } catch (Exception e) {
+            Log.e(TAG, "Exception!!!",e);
+//            Log.e(TAG, e.toString());
+        }
+
+        return fband_avail;
+
+    }
+
+
 }
