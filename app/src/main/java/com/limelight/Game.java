@@ -431,7 +431,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 }
 
                 while(true){
-                    SystemClock.sleep(1000);
+                    SystemClock.sleep(100);
                     // decoderRenderer.setFPS(30);
                     int totalFrames = decoderRenderer.getTotalFrames();
                     int avgLatency = decoderRenderer.getAverageDecoderLatency();
@@ -445,6 +445,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     if (!new_mac) {
                         mac_loss = 0;
                         mac_retx_delay = 0;
+                    }
+
+                    if (!new_rlc) {
                         rlc_loss = 0;
                         rlc_retx_delay = 0;
                     }
