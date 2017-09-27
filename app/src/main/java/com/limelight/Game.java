@@ -141,6 +141,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // private boolean new_packet = true;
     private boolean new_rlc = false;
     private boolean new_mac = false;
+    private boolean new_pdcp = false;
 
 
     private int pkt_size, wait_delay, proc_delay, trans_delay, ul_total_delay;
@@ -154,6 +155,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float mac_loss, rlc_loss;
     private float mac_retx_delay, rlc_retx_delay;
     private int ul_queue_length;
+    private float pdcp_gap_num;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
@@ -161,6 +163,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             if (intent.getAction().equals("android.appwidget.action.APPWIDGET_ENABLED")) {
                 //TODO: ???
+            } else if (intent.getAction().equals("MobileInsight.LtePdcpGapAnalyzer.PDCP_GAP")) {
+                new_pdcp = true;
+                pdcp_gap_num = Float.parseFloat(intent.getStringExtra("PDCP gap"));
+            } else if (intent.getAction().equals("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION")) {
+                cell_load = Float.parseFloat(intent.getStringExtra("Cell load"));
+                estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
+
             } else if (intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")) {
 
 //                Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
@@ -201,10 +210,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 ho_timestamp = Float.parseFloat(intent.getStringExtra("Timestamp"));
                 ho_target = intent.getStringExtra("event");
 
-            } else if (intent.getAction().equals("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION")) {
-                cell_load = Float.parseFloat(intent.getStringExtra("Cell load"));
-                estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
-
             } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.MAC_RETX")) {
                 new_mac = true;
                 mac_loss = Float.parseFloat(intent.getStringExtra("packet loss (pkt/s)"));
@@ -214,8 +219,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 new_rlc = true;
                 rlc_loss = Float.parseFloat(intent.getStringExtra("packet loss (pkt/s)"));
                 rlc_retx_delay =  Float.parseFloat(intent.getStringExtra("retransmission delay (ms/pkt)"));
-            }
-            else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.UL_QUEUE_LENGTH")) {
+            } else if (intent.getAction().equals("MobileInsight.LteMacAnalyzer.UL_QUEUE_LENGTH")) {
                 ul_queue_length = Integer.parseInt(intent.getStringExtra("length"));
             }
         }
@@ -237,16 +241,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         IntentFilter bandwidth_prediction_filter = new IntentFilter("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION");
         IntentFilter mac_loss_filter = new IntentFilter("MobileInsight.LteMacAnalyzer.MAC_RETX");
         IntentFilter rlc_loss_filter = new IntentFilter("MobileInsight.LteMacAnalyzer.RLC_RETX");
-        registerReceiver(MobileInsight_Receiver, ul_latency_filter);
-        registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
-        registerReceiver(MobileInsight_Receiver, phy_filter);
-        registerReceiver(MobileInsight_Receiver, handover_disruption_filter);
-        registerReceiver(MobileInsight_Receiver, sr_config_filter);
-        registerReceiver(MobileInsight_Receiver, handover_prediction_filter);
-        registerReceiver(MobileInsight_Receiver, handover_prediction_filter_2);
+        IntentFilter pdcp_gap_filter = new IntentFilter("MobileInsight.LtePdcpGapAnalyzer.PDCP_GAP");
+//        registerReceiver(MobileInsight_Receiver, ul_latency_filter);
+//        registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
+//        registerReceiver(MobileInsight_Receiver, phy_filter);
+//        registerReceiver(MobileInsight_Receiver, handover_disruption_filter);
+//        registerReceiver(MobileInsight_Receiver, sr_config_filter);
+//        registerReceiver(MobileInsight_Receiver, handover_prediction_filter);
+//        registerReceiver(MobileInsight_Receiver, handover_prediction_filter_2);
         registerReceiver(MobileInsight_Receiver, bandwidth_prediction_filter);
-        registerReceiver(MobileInsight_Receiver, mac_loss_filter);
-        registerReceiver(MobileInsight_Receiver, rlc_loss_filter);
+//        registerReceiver(MobileInsight_Receiver, mac_loss_filter);
+//        registerReceiver(MobileInsight_Receiver, rlc_loss_filter);
+        registerReceiver(MobileInsight_Receiver, pdcp_gap_filter);
 
 
         shortcutHelper = new ShortcutHelper(this);
@@ -430,8 +436,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     e.printStackTrace();
                 }
 
+                String filename2 = "app.csv";
+                FileOutputStream outputStream2 = null;
+                try {
+                    outputStream2 = openFileOutput(filename2, MODE_APPEND);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+
                 while(true){
-                    SystemClock.sleep(100);
+                    SystemClock.sleep(1000);
                     // decoderRenderer.setFPS(30);
                     int totalFrames = decoderRenderer.getTotalFrames();
                     int avgLatency = decoderRenderer.getAverageDecoderLatency();
@@ -450,6 +464,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     if (!new_rlc) {
                         rlc_loss = 0;
                         rlc_retx_delay = 0;
+                    }
+
+                    if (!new_pdcp) {
+                        pdcp_gap_num = 0;
                     }
 
 
@@ -480,7 +498,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         stats += "handover prediction: " + String.valueOf(ho_timestamp-ho_prediction_timestamp)+"ms"
                                 +" "+String.valueOf(ho_prediction_timestamp)
                                 +" "+String.valueOf(ho_timestamp)+"\n";
-                    setStatsText(statsTextView, stats);
+                    // setStatsText(statsTextView, stats);
+                    // Log.i("game", "Zhaowei: frame loss " + String.valueOf(framesLost) + " PDCP loss " + String.valueOf(pdcp_gap_num));
                     // Log.i("game","Zhaowei: UI thread running");
                     // new_packet = false;
 
@@ -490,10 +509,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                     csvString += String.valueOf(framesLost) + ',';
                     csvString += String.valueOf(cell_load) + ',';
-                    csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
-                    csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
-                    csvString += String.valueOf(transLatency) + ',';
+                    csvString += String.valueOf(pdcp_gap_num) + ',';
+//                    csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
+//                    csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
+//                    csvString += String.valueOf(transLatency) + ',';
                     csvString += '\n';
+                    Log.i("game", "Zhaowei: " + csvString);
 
                     try {
                         outputStream.write(csvString.getBytes());
@@ -501,11 +522,25 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         e.printStackTrace();
                     }
 
+                    String csvString2 = "";
+
+                    csvString2 += String.valueOf(framesLost) + ',';
+                    csvString2 += String.valueOf(transLatency) + ',';
+                    csvString2 += String.valueOf(currentFps) + ',';
+                    csvString2 += '\n';
+
+//                    try {
+//                        outputStream2.write(csvString2.getBytes());
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+
 //                        if (framesLost > 0) {
 //                            Log.i("decoder", "Zhaowei: " + stats);
 //                        }
                     new_mac = false;
                     new_rlc = false;
+                    new_pdcp = false;
 
                 }
             }
