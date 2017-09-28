@@ -144,6 +144,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean new_pdcp = false;
 
 
+
     private int pkt_size, wait_delay, proc_delay, trans_delay, ul_total_delay;
     private float dl_bandwidth;
     private float handover_disruption;
@@ -156,6 +157,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float mac_retx_delay, rlc_retx_delay;
     private int ul_queue_length;
     private float pdcp_gap_num;
+    private float ser_v;
 
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
@@ -170,6 +172,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 cell_load = Float.parseFloat(intent.getStringExtra("Cell load"));
                 estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
 
+            } else if (intent.getAction().equals("MobileInsight.LteWirelessErrorAnalyzer.SYMBOL_ERROR_RATE")) {
+                ser_v = Float.parseFloat(intent.getStringExtra("Symbol Error Rate"));
             } else if (intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")) {
 
 //                Log.i("Yuanjie-Game","MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN");
@@ -242,6 +246,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         IntentFilter mac_loss_filter = new IntentFilter("MobileInsight.LteMacAnalyzer.MAC_RETX");
         IntentFilter rlc_loss_filter = new IntentFilter("MobileInsight.LteMacAnalyzer.RLC_RETX");
         IntentFilter pdcp_gap_filter = new IntentFilter("MobileInsight.LtePdcpGapAnalyzer.PDCP_GAP");
+        final IntentFilter ser_filter = new IntentFilter("MobileInsight.LteWirelessErrorAnalyzer.SYMBOL_ERROR_RATE");
 //        registerReceiver(MobileInsight_Receiver, ul_latency_filter);
 //        registerReceiver(MobileInsight_Receiver, rrc_sr_filter);
 //        registerReceiver(MobileInsight_Receiver, phy_filter);
@@ -253,6 +258,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 //        registerReceiver(MobileInsight_Receiver, mac_loss_filter);
 //        registerReceiver(MobileInsight_Receiver, rlc_loss_filter);
         registerReceiver(MobileInsight_Receiver, pdcp_gap_filter);
+        registerReceiver(MobileInsight_Receiver, ser_filter);
 
 
         shortcutHelper = new ShortcutHelper(this);
@@ -428,7 +434,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         Runnable printStats = new Runnable() {
             @Override
             public void run() {
-                String filename = "results.csv";
+                String filename = "results_c.csv";
                 FileOutputStream outputStream = null;
                 try {
                     outputStream = openFileOutput(filename, MODE_APPEND);
@@ -510,6 +516,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     csvString += String.valueOf(framesLost) + ',';
                     csvString += String.valueOf(cell_load) + ',';
                     csvString += String.valueOf(pdcp_gap_num) + ',';
+                    csvString += String.valueOf(ser_v) + ',';
+                    csvString += String.valueOf(transLatency) + ',';
+                    csvString += String.valueOf(currentFps) + ',';
 //                    csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
 //                    csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
 //                    csvString += String.valueOf(transLatency) + ',';
