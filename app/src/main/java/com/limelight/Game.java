@@ -68,6 +68,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.text.DateFormat;
@@ -159,6 +160,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float pdcp_gap_num;
     private float ser_v;
 
+    private float RSRQ, SNR, CQI;
+
     private final BroadcastReceiver MobileInsight_Receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -171,7 +174,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             } else if (intent.getAction().equals("MobileInsight.LteBandwidthPredictor.BANDWIDTH_PREDICTION")) {
                 cell_load = Float.parseFloat(intent.getStringExtra("Cell load"));
                 estimated_bandwidth = Float.parseFloat(intent.getStringExtra("Estimated free bandwidth (Mbps)"));
-
+                RSRQ = Float.parseFloat(intent.getStringExtra("RSRQ"));
+                SNR = Float.parseFloat(intent.getStringExtra("SNR"));
+                CQI = Float.parseFloat(intent.getStringExtra("CQI"));
             } else if (intent.getAction().equals("MobileInsight.LteWirelessErrorAnalyzer.SYMBOL_ERROR_RATE")) {
                 ser_v = Float.parseFloat(intent.getStringExtra("Symbol Error Rate"));
             } else if (intent.getAction().equals("MobileInsight.UlLatBreakdownAnalyzer.UL_LAT_BREAKDOWN")) {
@@ -255,8 +260,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 //        registerReceiver(MobileInsight_Receiver, handover_prediction_filter);
 //        registerReceiver(MobileInsight_Receiver, handover_prediction_filter_2);
         registerReceiver(MobileInsight_Receiver, bandwidth_prediction_filter);
-//        registerReceiver(MobileInsight_Receiver, mac_loss_filter);
-//        registerReceiver(MobileInsight_Receiver, rlc_loss_filter);
+        registerReceiver(MobileInsight_Receiver, mac_loss_filter);
+        registerReceiver(MobileInsight_Receiver, rlc_loss_filter);
         registerReceiver(MobileInsight_Receiver, pdcp_gap_filter);
         registerReceiver(MobileInsight_Receiver, ser_filter);
 
@@ -434,7 +439,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         Runnable printStats = new Runnable() {
             @Override
             public void run() {
-                String filename = "results_c.csv";
+                String filename = "MI2.csv";
                 FileOutputStream outputStream = null;
                 try {
                     outputStream = openFileOutput(filename, MODE_APPEND);
@@ -449,6 +454,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
+
+                String csvInit = "Frame Loss,FPS,transLatency,cell load,pdcp,error rate,rsrq,snr,cqi,mac loss, mac avg delay,rlc loss,rlc avg delay\n";
+                try {
+                    outputStream.write(csvInit.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
 
                 while(true){
                     SystemClock.sleep(1000);
@@ -512,16 +525,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
 
                     String csvString = "";
-
+                    csvString += new Date().toString() + ',';
                     csvString += String.valueOf(framesLost) + ',';
+                    csvString += String.valueOf(currentFps) + ',';
+                    csvString += String.valueOf(transLatency) + ',';
                     csvString += String.valueOf(cell_load) + ',';
                     csvString += String.valueOf(pdcp_gap_num) + ',';
                     csvString += String.valueOf(ser_v) + ',';
-                    csvString += String.valueOf(transLatency) + ',';
-                    csvString += String.valueOf(currentFps) + ',';
-//                    csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
-//                    csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
-//                    csvString += String.valueOf(transLatency) + ',';
+                    csvString += String.valueOf(RSRQ) + ',';
+                    csvString += String.valueOf(SNR) + ',';
+                    csvString += String.valueOf(CQI) + ',';
+                    csvString += String.valueOf(mac_loss) + ',' + String.valueOf(mac_retx_delay) + ',';
+                    csvString += String.valueOf(rlc_loss) + ',' + String.valueOf(rlc_retx_delay) + ',';
+
                     csvString += '\n';
                     Log.i("game", "Zhaowei: " + csvString);
 
