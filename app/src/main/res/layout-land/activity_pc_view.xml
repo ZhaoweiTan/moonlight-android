@@ -40,6 +40,14 @@
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:gravity="center"
                 android:text="@string/searching_pc"/>
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Boost your game!"
+                android:id="@+id/button_band"
+                android:layout_alignParentBottom="true"
+                android:longClickable="false"
+                android:clickable="true" />
         </RelativeLayout>
 
     </RelativeLayout>

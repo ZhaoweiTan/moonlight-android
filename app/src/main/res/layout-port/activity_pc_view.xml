@@ -48,6 +48,14 @@
 
     </RelativeLayout>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Boost your game!"
+        android:id="@+id/button_band"
+        android:layout_alignParentBottom="true"
+        android:clickable="true" />
+
     <ImageButton
         android:id="@+id/settingsButton"
         android:layout_width="70dp"

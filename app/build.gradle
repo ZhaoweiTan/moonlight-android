@@ -8,7 +8,7 @@ android {
     buildToolsVersion '26.0.0'
 
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 19
         targetSdkVersion 26
 
         versionName "5.1.1"
@@ -16,22 +16,19 @@ android {
     }
 
     productFlavors {
-
         nonRoot {
             applicationId "com.limelight"
             ndk {
                 abiFilters "armeabi-v7a", "x86", "mips"
             }
         }
-
         root {
             // Android O has native mouse capture, so don't show the rooted
             // version to devices running O on the Play Store.
             maxSdkVersion 25
-
             applicationId "com.limelight.root"
             ndk {
-                abiFilters "armeabi-v7a",  "x86",  "mips"
+                abiFilters "armeabi-v7a", "x86", "mips"
             }
         }
     }
@@ -58,7 +55,6 @@ dependencies {
     compile 'org.bouncycastle:bcprov-jdk15on:1.52'
     compile 'org.bouncycastle:bcpkix-jdk15on:1.52'
     compile files('libs/jcodec-0.1.9-patched.jar')
-
-    debugCompile project(path:':moonlight-common', configuration:'debug')
-    releaseCompile project(path:':moonlight-common', configuration:'release')
+    debugCompile project(path: ':moonlight-common', configuration: 'debug')
+    releaseCompile project(path: ':moonlight-common', configuration: 'release')
 }

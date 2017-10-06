@@ -15,7 +15,10 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import com.limelight.binding.PlatformBinding;
@@ -42,9 +45,11 @@ import com.limelight.utils.UiHelper;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
@@ -56,8 +61,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -66,7 +74,10 @@ import android.view.View.OnClickListener;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
@@ -83,6 +94,12 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private boolean freezeUpdates, runningPolling, inForeground;
     private LocationManager mLocationManager = null;
     private LocationListener mLocationListeners;
+    private AlertDialog.Builder alertDialogBuilder;
+    private Location mLocation;
+
+    private Button band_button;
+    final Context context = this;
+
     private static final String TAG = "PCView";
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
@@ -131,8 +148,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         @Override
         public void onLocationChanged(Location location) {
-            Log.e(TAG, "onLocationChanged: " + location);
-            mLastLocation.set(location);
+
+            mLocation.set(location);
+//            Log.i(TAG, "onLocationChanged: " + Double.toString(mLocation.getLatitude()));
         }
 
         @Override
@@ -147,7 +165,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
-            Log.e(TAG, "onStatusChanged: " + provider);
+//            Log.e(TAG, "onStatusChanged: " + provider);
         }
     }
 
@@ -158,6 +176,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private final static int DELETE_ID = 5;
     private final static int RESUME_ID = 6;
     private final static int QUIT_ID = 7;
+
 
     private void initializeViews() {
         setContentView(R.layout.activity_pc_view);
@@ -171,6 +190,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         ImageButton settingsButton = (ImageButton) findViewById(R.id.settingsButton);
         ImageButton addComputerButton = (ImageButton) findViewById(R.id.manuallyAddPc);
         ImageButton helpButton = (ImageButton) findViewById(R.id.helpButton);
+        band_button = (Button)findViewById(R.id.button_band);
 
         settingsButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -191,6 +211,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 HelpLauncher.launchSetupGuide(PcView.this);
             }
         });
+        band_button.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+
+                adaptFreqBand(mLocation);
+            }
+        });
 
         getFragmentManager().beginTransaction()
                 .replace(R.id.pcFragmentContainer, new AdapterFragment())
@@ -209,6 +237,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        mLocation = new Location("");
+
         shortcutHelper = new ShortcutHelper(this);
 
         UiHelper.setLocale(this);
@@ -221,13 +251,19 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 PreferenceConfiguration.readPreferences(this).listMode,
                 PreferenceConfiguration.readPreferences(this).smallIconMode);
 
+        // Create location listner for the LTE freq-band adaptation
         try {
+
+            int permissionCheck = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION);
+            if(permissionCheck!=PackageManager.PERMISSION_GRANTED)
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0 );
+
             mLocationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
             mLocationListeners = new LocationListener(LocationManager.GPS_PROVIDER);
             mLocationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
-                    1000,
-                    10f,
+                    0,
+                    0,
                     mLocationListeners
             );
         } catch (java.lang.SecurityException ex) {
@@ -236,13 +272,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             Log.d(TAG, "network provider does not exist, " + ex.getMessage());
         }
 
-
-
-
-        adaptFreqBand();
-
         initializeViews();
-
     }
 
 
@@ -733,20 +763,86 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
     }
 
+    private float round_2(float value){
+        return Math.round(value*100)/100;
+    }
 
-    private void adaptFreqBand() {
+
+
+    private void adaptFreqBand(Location location) {
+
+
+
         // int service_code = get_service_code("com.android.internal.telephony.ITelephony", "getPreferredNetworkType");
 
+        alertDialogBuilder = new AlertDialog.Builder(context);
 
-//        float max_freq = getBandFromKPIMap();
-        int max_freq = 0;
+        // set title
+        alertDialogBuilder.setTitle("Boost your game");
+        // set dialog message
+        alertDialogBuilder
+                .setMessage("Click yes to exit!")
+                .setCancelable(false)
+                .setPositiveButton("Boost now!", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        RootCommand("am broadcast -a \"android.provider.Telephony.SECRET_CODE\" -d \"android_secret_code://2263\" ",false);
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // if this button is clicked, just close
+                        // the dialog box and do nothing
+                        dialog.cancel();
+                    }
+                });
 
-        Log.i("PC", "max available dl freq is: " + String.valueOf(max_freq));
+
+        Map<Float, Map<String, String>> freq_list = getBandFromKPIMap(location);
+        String information = "We have helped you find the following LTE bands:\n\n";
+//        information += "         BW Load Radio Delay Error\n";
+
+        Iterator it = freq_list.entrySet().iterator();
+        //TODO: Algorithm to determine the best frequency band
+
+        //Approach 1: List the first one
+        Map.Entry pair = (Map.Entry)it.next();
+        int band_indicator = Math.round((float)pair.getKey());
+        Map<String, Float> values = (Map<String, Float>) pair.getValue();
+        information += "LTE Band "+ Integer.toString(band_indicator)+": \n";
+            information += "  - Bandwidth: " + values.get("DL_Bandwidth") + "MHz \n";
+            information += "  - Network load: " + values.get("Cell load") + "\n";
+            information += "  - Signal strength: " + values.get("RSRQ") + "dB \n";
+            information += "  - Delay: " + values.get("UL_Delay") + "ms \n";
+            information += "  - Error rate: " + values.get("Symbol Error Rate") + "\n";
+        information += "\n";
+
+
+        //Approach 2: List all bands
+//        while (it.hasNext()) {
+//            Map.Entry pair = (Map.Entry)it.next();
+//
+//            int band_indicator = Math.round((float)pair.getKey());
+//            Map<String, Float> values = (Map<String, Float>) pair.getValue();
+//
+//            information += "  - Band "+ Integer.toString(band_indicator)+": ";
+//            information += values.get("DL_Bandwidth") + "MHz ";
+//            information += values.get("Cell load") + " ";
+//            information += values.get("RSRQ") + "dB ";
+//            information += values.get("UL_Delay") + "ms ";
+//            information += values.get("Symbol Error Rate") + " ";
+//            information += "\n";
+//            it.remove(); // avoids a ConcurrentModificationException
+//        }
+        information += "Please choose the above band ONLY in \"LTE Band Preference\", and click \"Apply band configuration\"";
 
         // (deprecated) use secret code to change the frequency band
         // RootCommand("service call phone " + Integer.toString(service_code) + " i32 " + Integer.toString(10), false);
 
         // TODO: do sth with max_freq -- integrate with MI info and AT command
+
+        AlertDialog alert = alertDialogBuilder.create();
+        alert.setMessage(information);
+        alert.show();
 
 
     }
@@ -822,54 +918,51 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         return res;
     }
 
-    private float getBandFromKPIMap() {
+    private Map<Float, Map<String, String>> getBandFromKPIMap(Location location) {
 
-//        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//
-//
-//        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//        if (location ==  null)
-//            return -1;
-//        double longitude = location.getLongitude();
-//        double latitude = location.getLatitude();
-
-        double longitude = mLocationListeners.mLastLocation.getLongitude();
-        double latitude = mLocationListeners.mLastLocation.getLatitude();
+        try{
+            double longitude = location.getLongitude();
+            double latitude = location.getLatitude();
 
 
-        Log.i(TAG, "Logitude is " + String.valueOf(longitude) + "; latitude is " + String.valueOf(latitude));
+            Log.i(TAG, "Logitude is " + String.valueOf(longitude) + "; latitude is " + String.valueOf(latitude));
+
+            TelephonyManager tel = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            String networkOperator = tel.getNetworkOperator();
 
 
+            // Substitute the default with the one using our own GPS later
+            String[] urls = new String[2];
+            urls[0] = "http://knowledge-map.xyz/kpi_log/frequency_band/?Lat=" + String.valueOf(latitude) + "&Lng=" + String.valueOf(longitude);
+            urls[1] = networkOperator;
 
-        // Substitute the default with the one using our own GPS later
-        String[] urls = new String[3];
-        urls[0] = "http://knowledge-map.xyz/kpi_log/frequency_band/?Lat=" + String.valueOf(latitude) + "&Lng=" + String.valueOf(longitude);
-//        urls[0] = "http://knowledge-map.xyz/kpi_log/frequency_band/?Lat=34.06979594&Lng=-118.44237744";
-        urls[1] = "Fi Network-310260";
-//        urls[2] = "DL_Freq";
-        urls[2] = "DL_Bandwidth";
+            // Note that if there're no records near the location, could return empty list
+            Map<Float, Map<String, String>> fband_list = new HashMap<Float, Map<String, String>>(); // Band indicator -> bandwidth
+            try {
+                fband_list = new GetKPITask().execute(urls).get();
 
-        // Note that if there're no records near the location, could return empty list
-        List<Float> fband_list = null;
-        try {
-            fband_list = new GetKPITask().execute(urls).get();
-//            fband_list = getFreqBand(urls);
-            Log.i(TAG, "Frequency band list:"+fband_list.toString());
-        } catch (Exception e) {
+            } catch (Exception e) {
+                Log.e(TAG, e.toString());
 
-            Log.e(TAG, "Exception!!!");
+            }
+            if (fband_list != null) {
+            }
+
+            return fband_list;
+
+        }catch(Exception e){
+
             Log.e(TAG, e.toString());
 
-        }
-        if (fband_list != null) {
-            Collections.sort(fband_list, Collections.reverseOrder());
+            return null;
+
         }
 
-        return fband_list.get(0);
+
 
     }
 
-    class GetKPITask extends AsyncTask<String, Void, List<Float>>
+    class GetKPITask extends AsyncTask<String, Void, Map<Float, Map<String, String>> >
     {
 
 
@@ -877,8 +970,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             //display progress dialog.
 
         }
-        protected List<Float> doInBackground(String... urls) {
-            List<Float> fband_avail = new ArrayList<Float>();
+        protected Map<Float, Map<String, String>> doInBackground(String... urls) {
+
+            Map<Float, Map<String, String>> band_info = new HashMap<Float, Map<String, String>>(); // Band indicator -> KPIs
 
             try {
                 URL KPIMap = new URL(urls[0]);
@@ -899,10 +993,26 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         html = html + inputLine;
                     Log.i(TAG, html);
                     JSONObject fband = new JSONObject(html);
+                    if(!fband.has(urls[1]))
+                        return null;
                     JSONArray fband_carrier = fband.getJSONArray(urls[1]);
                     for (int i = 0; i < fband_carrier.length(); i++) {
-                        Log.i(TAG, fband_carrier.getJSONObject(i).getString(urls[2]));
-                        fband_avail.add(Float.parseFloat(fband_carrier.getJSONObject(i).getString(urls[2])));
+
+                        Map<String, String> kpis = new HashMap<String, String>();
+                        kpis.put("DL_Bandwidth", fband_carrier.getJSONObject(i).getString("DL_Bandwidth"));
+
+
+                        kpis.put("RSRQ", fband_carrier.getJSONObject(i).getString("RSRQ"));
+                        kpis.put("Cell load", fband_carrier.getJSONObject(i).getString("Cell load"));
+                        kpis.put("Symbol Error Rate", fband_carrier.getJSONObject(i).getString("Symbol Error Rate"));
+                        JSONObject ul_latency_breakdown = fband_carrier.getJSONObject(i).getJSONObject("ul_latency_breakdown");
+                            float total_latency = 0;
+                            total_latency += Float.parseFloat(ul_latency_breakdown.getString("trans_delay"));
+                            total_latency += Float.parseFloat(ul_latency_breakdown.getString("proc_delay"));
+                            total_latency += Float.parseFloat(ul_latency_breakdown.getString("wait_delay"));
+                        kpis.put("UL_Delay", String.valueOf(total_latency));
+
+                        band_info.put(Float.parseFloat(fband_carrier.getJSONObject(i).getString("Band indicator")), kpis);
                     }
 
                 }
@@ -918,7 +1028,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 Log.e(TAG, "Exception!!!",e);
             }
 
-            return fband_avail;
+            return band_info;
         }
 
     }
